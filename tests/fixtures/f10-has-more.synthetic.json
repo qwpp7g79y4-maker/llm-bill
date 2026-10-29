@@ -1,0 +1,7 @@
+{"_synthetic":"SYNTHETISCH VOORBEELD, geen echte data",
+ "data":[{"starting_at":"2026-10-01T00:00:00Z","ending_at":"2026-10-02T00:00:00Z",
+ "results":[{"model":"voorbeeld-model-a","service_tier":"standard",
+  "uncached_input_tokens":10,"cache_read_input_tokens":0,
+  "cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},
+  "output_tokens":5}]}],
+ "has_more":true,"next_page":"voorbeeld-pagina-token"}

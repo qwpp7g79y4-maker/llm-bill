@@ -1,0 +1,1 @@
+{"day":"2026-10-02","provider":"openai","model":"voorbeeld-model-b","service_tier":"standard","input_tokens":300,"cache_read_tokens":9000,"cache_write_tokens":700,"output_tokens":100,"requests":10,"cost_usd":null}

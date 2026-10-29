@@ -594,3 +594,26 @@ fn g1_float_artifact_and_exponent_round_to_12() {
     let exp = llm_bill::model::Money::parse("1.4e-6", 0);
     assert_eq!(exp.map(|m| m.to_string()).as_deref(), Ok("0.0000014"));
 }
+
+/// G-2a: the same float artefact twice is one rounding warning, also in JSON.
+#[test]
+fn g2a_same_float_artifact_warns_once_in_json() {
+    let doc = r#"{"data":[{"start_time":1790812800,"results":[
+        {"amount":{"value":0.30000000000000004,"currency":"usd"},"line_item":"voorbeeld-a"},
+        {"amount":{"value":0.30000000000000004,"currency":"usd"},"line_item":"voorbeeld-b"}
+    ]}]}"#;
+    let o = run_with(&["--json", "-"], Some(doc.as_bytes()));
+    assert_eq!(o.code, 0, "stdout={}\nstderr={}", o.stdout, o.stderr);
+    let d: serde_json::Value = serde_json::from_str(&o.stdout).expect(&o.stdout);
+    let n = d["warnings"]
+        .as_array()
+        .expect(&o.stdout)
+        .iter()
+        .filter(|w| {
+            w.as_str()
+                .unwrap_or("")
+                .contains("afgerond op 12 decimalen")
+        })
+        .count();
+    assert_eq!(n, 1, "{d}");
+}

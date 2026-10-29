@@ -1,7 +1,7 @@
 //! Normalised v0.1 record and its checked scalar types.
 
+use std::cell::RefCell;
 use std::fmt;
-use std::io::Write;
 
 /// Error for bad input; the CLI maps it to exit code 2.
 #[derive(Debug, PartialEq, Eq)]
@@ -117,8 +117,8 @@ impl Money {
     pub const ZERO: Money = Money(0);
 
     /// Parse a non-negative decimal (`123`, `1.23`) or scientific form (`1.4e-6`).
-    /// No sign. More than 12 decimal places is rounded and a warning is written
-    /// to stderr. `shift` divides by 10^shift (2 converts cents to dollars).
+    /// No sign. More than 12 decimal places is rounded; at most one warning is
+    /// kept for the run. `shift` divides by 10^shift (2 converts cents to dollars).
     pub fn parse(s: &str, shift: usize) -> Result<Money> {
         let (mantissa, exp) = scientific(s)?;
         let Some((int, frac)) = plain_decimal(mantissa) else {
@@ -217,12 +217,27 @@ fn parse_exact(s: &str, int: &str, frac: &str, shift: usize) -> Result<Money> {
     Ok(Money(v))
 }
 
+// At most one rounding note on this thread. `run` clears it on entry and
+// takes it once after the input loop.
+thread_local! {
+    static ROUNDED_WARNING: RefCell<Option<String>> = const { RefCell::new(None) };
+}
+
+pub(crate) fn clear_rounded_warning() {
+    ROUNDED_WARNING.with(|w| *w.borrow_mut() = None);
+}
+
+pub(crate) fn take_rounded_warning() -> Option<String> {
+    ROUNDED_WARNING.with(|w| w.borrow_mut().take())
+}
+
 fn warn_rounded(s: &str) {
-    let _ = writeln!(
-        std::io::stderr(),
-        "waarschuwing: bedrag {:?} afgerond op 12 decimalen",
-        esc(s)
-    );
+    ROUNDED_WARNING.with(|w| {
+        let mut slot = w.borrow_mut();
+        if slot.is_none() {
+            *slot = Some(format!("bedrag {:?} afgerond op 12 decimalen", esc(s)));
+        }
+    });
 }
 
 /// Round to `12 - shift` fractional digits of the input (12 dollar decimals) and warn.

@@ -15,6 +15,7 @@ pub struct Options {
 
 /// Run on already-read input texts and return the rendered output.
 pub fn run(texts: &[String], opts: &Options) -> Result<(String, Vec<String>)> {
+    model::clear_rounded_warning();
     let mut records = Vec::new();
     let mut warnings = Vec::new();
     let mut seen = std::collections::HashSet::new();
@@ -30,6 +31,9 @@ pub fn run(texts: &[String], opts: &Options) -> Result<(String, Vec<String>)> {
         let p = input::parse_with(t, &mut seen)?;
         records.extend(p.records);
         warnings.extend(p.warnings);
+    }
+    if let Some(w) = model::take_rounded_warning() {
+        warnings.push(w);
     }
     let rows = report::aggregate(&records)?;
     if opts.require_cost {

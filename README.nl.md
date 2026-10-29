@@ -10,8 +10,11 @@ llm-bill [--json] [--require-cost] BESTAND...     # "-" leest stdin
 
 De uitvoer is een tekstabel (day, provider, model, tier, input, cache_read,
 cache_write, output, cost) met een totaalregel, of `--json`. Meerdere bestanden
-worden opgeteld. Exitcode 0 is gelukt, 2 is foute invoer of gebruik (een melding
-op stderr, nooit een paniek). Stuur- en bidi-tekens in data worden geëscaped.
+worden opgeteld. Exitcode 0 is gelukt, 2 is foute invoer, fout gebruik of een
+mislukte schrijfactie naar stdout (een melding op stderr). Een falende stderr wordt
+genegeerd, dus geen paniek en geen exit 101 bij een volle of gesloten stdout of stderr.
+Stuurtekens (C0, DEL, C1 zoals U+0085) en bidi-tekens in data worden geëscaped als
+`\u{..}` in tekst en als `\uXXXX` in `--json`.
 
 ## Invoerformaten
 

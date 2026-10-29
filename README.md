@@ -10,8 +10,11 @@ llm-bill [--json] [--require-cost] FILE...     # "-" reads stdin
 
 Output is a text table (day, provider, model, tier, input, cache_read,
 cache_write, output, cost) with a total row, or `--json`. Several files are
-summed. Exit code 0 is success, 2 is bad input or usage (a message on stderr,
-never a panic). Control and bidirectional characters in data are escaped.
+summed. Exit code 0 is success, 2 is bad input, bad usage or a failed
+write to stdout (a message on stderr). A failing stderr is ignored, so there is no
+panic and no exit 101 when stdout or stderr is full or closed. Control characters
+(C0, DEL, C1 such as U+0085) and bidirectional characters in data are escaped as
+`\u{..}` in text and as `\uXXXX` in `--json`.
 
 ## Input formats
 

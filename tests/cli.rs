@@ -441,3 +441,63 @@ fn b4_duplicate_bucket_result_is_counted_once_with_warning() {
     assert_eq!(d["totals"]["input_tokens"], 20);
     assert_eq!(d["warnings"].as_array().unwrap().len(), 0);
 }
+
+/// Run with stdout and/or stderr replaced by /dev/full (every write fails with ENOSPC).
+#[cfg(target_os = "linux")]
+fn run_full(args: &[&str], full_stdout: bool, full_stderr: bool) -> Out {
+    let full = || {
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open("/dev/full")
+            .unwrap()
+    };
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_llm-bill"));
+    cmd.args(args).stdin(Stdio::null());
+    cmd.stdout(if full_stdout {
+        Stdio::from(full())
+    } else {
+        Stdio::piped()
+    });
+    cmd.stderr(if full_stderr {
+        Stdio::from(full())
+    } else {
+        Stdio::piped()
+    });
+    let o = cmd.output().unwrap();
+    Out {
+        code: o.status.code().unwrap_or(-1),
+        stdout: String::from_utf8_lossy(&o.stdout).into_owned(),
+        stderr: String::from_utf8_lossy(&o.stderr).into_owned(),
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn b5_stdout_write_error_is_nonzero_without_panic() {
+    if !std::path::Path::new("/dev/full").exists() {
+        return;
+    }
+    let f = fixture("f01-basis.synthetic.jsonl");
+    for args in [&[f.as_str()][..], &["--json", f.as_str()][..]] {
+        let o = run_full(args, true, false);
+        assert_eq!(o.code, 2, "{args:?}: {}", o.stderr);
+        assert!(o.stderr.starts_with("fout:"), "{}", o.stderr);
+        assert!(!o.stderr.contains("panicked"), "{}", o.stderr);
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn b5_stderr_write_error_does_not_panic() {
+    if !std::path::Path::new("/dev/full").exists() {
+        return;
+    }
+    // Error path: exit 2, not 101.
+    let o = run_full(&["/nonexistent/llm-bill-test.jsonl"], false, true);
+    assert_eq!(o.code, 2);
+    // Warning path (--json prints warnings on stderr): output still succeeds.
+    let f = fixture("f10-has-more.synthetic.json");
+    let o = run_full(&["--json", f.as_str()], false, true);
+    assert_eq!(o.code, 0);
+    assert!(o.stdout.contains("has_more"));
+}

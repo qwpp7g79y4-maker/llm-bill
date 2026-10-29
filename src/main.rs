@@ -38,6 +38,11 @@ fn read(path: &PathBuf) -> Result<String, String> {
     String::from_utf8(buf).map_err(|_| format!("{name}: geen geldige UTF-8"))
 }
 
+/// Print a line on stderr. A failing stderr is ignored: `eprintln!` would panic.
+fn note(line: &str) {
+    let _ = writeln!(std::io::stderr(), "{line}");
+}
+
 fn main() -> ExitCode {
     let args = Args::parse();
     let result = args
@@ -54,16 +59,26 @@ fn main() -> ExitCode {
         });
     match result {
         Ok((out, warnings)) => {
-            let _ = std::io::stdout().write_all(out.as_bytes());
+            let mut stdout = std::io::stdout().lock();
+            if let Err(e) = stdout
+                .write_all(out.as_bytes())
+                .and_then(|()| stdout.flush())
+            {
+                note(&format!(
+                    "fout: schrijven naar stdout mislukt: {}",
+                    esc(&e.to_string())
+                ));
+                return ExitCode::from(2);
+            }
             if args.json {
                 for w in &warnings {
-                    eprintln!("waarschuwing: {}", esc(w));
+                    note(&format!("waarschuwing: {}", esc(w)));
                 }
             }
             ExitCode::SUCCESS
         }
         Err(e) => {
-            eprintln!("fout: {e}");
+            note(&format!("fout: {e}"));
             ExitCode::from(2)
         }
     }

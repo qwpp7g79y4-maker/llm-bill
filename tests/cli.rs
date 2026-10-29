@@ -355,3 +355,50 @@ fn b2_json_and_text_escape_c0_c1_and_bidi() {
     let t = run_with(&["-"], Some(line.as_bytes()));
     assert!(t.stdout.contains("\\u{85}"), "{}", t.stdout);
 }
+
+fn line(day: &str, tokens: u64, cost: Option<&str>) -> String {
+    let cost = cost.map_or(String::new(), |c| format!(",\"cost_usd\":\"{c}\""));
+    format!(
+        "{{\"day\":\"{day}\",\"provider\":\"other\",\"model\":\"m\",\"input_tokens\":{tokens},\"output_tokens\":0{cost}}}\n"
+    )
+}
+
+#[test]
+fn b3_partial_cost_row_is_incomplete() {
+    // Same row: one record with tokens and cost, one with tokens and no cost.
+    let input = format!(
+        "{}{}",
+        line("2026-10-01", 10, Some("5.00")),
+        line("2026-10-01", 20, None)
+    );
+    let j = run_with(&["--json", "-"], Some(input.as_bytes()));
+    assert_eq!(j.code, 0, "{}", j.stderr);
+    let d: serde_json::Value = serde_json::from_str(&j.stdout).unwrap();
+    assert_eq!(d["rows"][0]["cost_usd"], "5.00");
+    assert_eq!(d["rows"][0]["cost_known"], false);
+    assert_eq!(d["totals"]["cost_complete"], false);
+    let t = run_with(&["-"], Some(input.as_bytes()));
+    assert!(t.stdout.contains("$5.00+"), "{}", t.stdout);
+    let strict = run_with(&["--require-cost", "-"], Some(input.as_bytes()));
+    assert_eq!(strict.code, 2);
+    assert!(strict.stdout.is_empty());
+    assert!(
+        strict.stderr.contains("--require-cost"),
+        "{}",
+        strict.stderr
+    );
+}
+
+#[test]
+fn b3_cost_only_record_still_covers_usage_only_record() {
+    // Usage from one source and cost from another (no tokens) stay complete.
+    let input = format!(
+        "{}{}",
+        line("2026-10-01", 20, None),
+        line("2026-10-01", 0, Some("5.00"))
+    );
+    let o = run_with(&["--require-cost", "--json", "-"], Some(input.as_bytes()));
+    assert_eq!(o.code, 0, "{}", o.stderr);
+    let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
+    assert_eq!(d["rows"][0]["cost_known"], true);
+}

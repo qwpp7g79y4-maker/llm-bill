@@ -29,8 +29,18 @@ fn add(a: u64, b: u64, what: &str) -> Result<u64> {
 
 pub fn aggregate(records: &[Record]) -> Result<Vec<Row>> {
     let mut map: BTreeMap<Key, Row> = BTreeMap::new();
+    // Per row: (has a record with tokens and cost, has a record with tokens and no cost).
+    let mut mixed: BTreeMap<Key, (bool, bool)> = BTreeMap::new();
     for r in records {
         let key = (r.day, r.provider, r.model.clone(), r.tier);
+        if r.has_tokens() {
+            let m = mixed.entry(key.clone()).or_default();
+            if r.cost_usd.is_some() {
+                m.0 = true;
+            } else {
+                m.1 = true;
+            }
+        }
         let row = map.entry(key).or_insert_with(|| Row {
             day: r.day,
             provider: r.provider,
@@ -68,8 +78,10 @@ pub fn aggregate(records: &[Record]) -> Result<Vec<Row>> {
             );
         }
     }
-    let mut rows: Vec<Row> = map.into_values().collect();
-    for row in &mut rows {
+    let mut rows: Vec<Row> = Vec::with_capacity(map.len());
+    for (key, mut row) in map {
+        // Tokens recorded both with and without cost: the sum covers only part of them.
+        let partial = mixed.get(&key).is_some_and(|m| m.0 && m.1);
         let has_tokens = [
             row.input_tokens,
             row.cache_read_tokens,
@@ -78,7 +90,8 @@ pub fn aggregate(records: &[Record]) -> Result<Vec<Row>> {
         ]
         .iter()
         .any(|&t| t > 0);
-        row.cost_known = row.cost_usd.is_some() || !has_tokens;
+        row.cost_known = (row.cost_usd.is_some() || !has_tokens) && !partial;
+        rows.push(row);
     }
     Ok(rows)
 }

@@ -61,6 +61,9 @@ Rules:
   and the totals are incomplete.
 - Cost is only shown when the source gives it. Without it the cost column says
   `onbekend`; `--require-cost` turns that into exit code 2. There is no price file yet.
+  A row where only some of the records with tokens carry a cost shows `$X+` (and
+  `cost_known: false`), also under `--require-cost`. A record with cost but no tokens
+  (the Anthropic Cost API next to the Usage API) covers the usage records of its row.
 
 ## Not (yet)
 

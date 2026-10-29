@@ -61,6 +61,9 @@ Regels:
   pagina van meer en de totalen zijn onvolledig.
 - Kosten staan er alleen als de bron ze geeft. Zonder bedrag zegt de kostenkolom
   `onbekend`; `--require-cost` maakt daar exitcode 2 van. Er is nog geen prijsbestand.
+  Een rij waarvan maar een deel van de records met tokens een bedrag heeft, toont `$X+`
+  (en `cost_known: false`), ook bij `--require-cost`. Een record met bedrag maar zonder
+  tokens (de Anthropic Cost API naast de Usage API) dekt de usage-records van zijn rij.
 
 ## Nog niet
 

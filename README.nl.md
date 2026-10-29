@@ -57,6 +57,11 @@ Regels:
   gegroepeerd) staat als `onbekend`. Tijdstippen die niet in UTC zijn worden afgewezen.
 - OpenAI `input_tokens` staat zoals gemeld; of de gecachete tokens daarin zitten
   staat niet in de gebruikte bron, vergelijk dus zelf met `cache_read`.
+- Dubbele gegevens worden niet dubbel geteld: een invoer die identiek is aan een eerdere
+  (hetzelfde bestand twee keer) wordt overgeslagen, net als een API-resultaat dat gelijk
+  is aan een al geziene in een bucket met dezelfde start (herhaalde buckets, overlappende
+  pagina's). Beide geven een waarschuwing. Genormaliseerde JSONL-regels worden nooit
+  ontdubbeld: verschillende invoer met dezelfde sleutel wordt opgeteld.
 - `has_more=true` in een antwoord geeft een waarschuwing: het bestand is één
   pagina van meer en de totalen zijn onvolledig.
 - Kosten staan er alleen als de bron ze geeft. Zonder bedrag zegt de kostenkolom

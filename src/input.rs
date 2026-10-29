@@ -5,6 +5,7 @@
 
 use crate::model::{err, esc, Day, Money, Provider, Record, Result, Tier};
 use serde_json::{Map, Value};
+use std::collections::HashSet;
 
 type Obj = Map<String, Value>;
 
@@ -19,6 +20,13 @@ pub struct Parsed {
 
 /// Parse one input text. Auto-detects an API response (`{"data":[...]}`) or JSONL.
 pub fn parse(text: &str) -> Result<Parsed> {
+    parse_with(text, &mut HashSet::new())
+}
+
+/// Like [`parse`], sharing `seen` between inputs: an API result that is identical to
+/// one already seen in the same bucket (same start) is skipped with a warning, so
+/// repeated buckets and overlapping pages are not counted twice.
+pub fn parse_with(text: &str, seen: &mut HashSet<String>) -> Result<Parsed> {
     let trimmed = text.trim();
     if trimmed.is_empty() {
         return err("lege invoer");
@@ -27,7 +35,7 @@ pub fn parse(text: &str) -> Result<Parsed> {
     if trimmed.starts_with('{') {
         if let Ok(Value::Object(doc)) = serde_json::from_str::<Value>(trimmed) {
             if doc.contains_key("data") {
-                parse_api(&doc, &mut out)?;
+                parse_api(&doc, seen, &mut out)?;
                 return finish(out);
             }
         }
@@ -180,7 +188,7 @@ fn parse_normalised(v: &Value) -> Result<Record> {
 
 // ---- API responses -------------------------------------------------------
 
-fn parse_api(doc: &Obj, out: &mut Parsed) -> Result<()> {
+fn parse_api(doc: &Obj, seen: &mut HashSet<String>, out: &mut Parsed) -> Result<()> {
     let Some(Value::Array(buckets)) = doc.get("data") else {
         return err("data: verwacht een lijst met buckets");
     };
@@ -191,6 +199,7 @@ fn parse_api(doc: &Obj, out: &mut Parsed) -> Result<()> {
         );
     }
     let mut skipped = 0usize;
+    let mut duplicates = 0usize;
     for (i, b) in buckets.iter().enumerate() {
         let ctx = |e: crate::model::Error| crate::model::Error(format!("bucket {}: {e}", i + 1));
         let b = as_obj(b, "bucket").map_err(ctx)?;
@@ -198,8 +207,17 @@ fn parse_api(doc: &Obj, out: &mut Parsed) -> Result<()> {
         let Some(Value::Array(results)) = b.get("results") else {
             return err(format!("bucket {}: results: verwacht een lijst", i + 1));
         };
+        let start = b
+            .get("starting_at")
+            .or_else(|| b.get("start_time"))
+            .map_or_else(String::new, Value::to_string);
         for r in results {
             let r = as_obj(r, "result").map_err(ctx)?;
+            // Map keys are ordered, so equal results serialise identically.
+            if !seen.insert(format!("{start}|{}", Value::Object(r.clone()))) {
+                duplicates += 1;
+                continue;
+            }
             let rec = match (provider, r.contains_key("amount")) {
                 (Provider::Anthropic, false) => anthropic_usage(day, r).map(Some),
                 (Provider::Anthropic, true) => anthropic_cost(day, r),
@@ -211,6 +229,11 @@ fn parse_api(doc: &Obj, out: &mut Parsed) -> Result<()> {
                 None => skipped += 1,
             }
         }
+    }
+    if duplicates > 0 {
+        out.warnings.push(format!(
+            "{duplicates} dubbel(e) resultaat/resultaten in dezelfde bucket overgeslagen (niet dubbel geteld)"
+        ));
     }
     if skipped > 0 {
         out.warnings.push(format!(

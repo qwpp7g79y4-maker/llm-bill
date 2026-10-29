@@ -179,13 +179,18 @@ fn f11_openai_costs_with_assumption_warning() {
 
 #[test]
 fn combined_files_sum_per_day_model() {
+    // Two different inputs for the same (day, provider, model, tier) are summed.
     let a = fixture("f01-basis.synthetic.jsonl");
-    let o = run_with(&["--json", &a, &a], None);
-    assert_eq!(o.code, 0);
+    let second = std::fs::read_to_string(&a)
+        .unwrap()
+        .replace("\"input_tokens\":1500", "\"input_tokens\":100");
+    let o = run_with(&["--json", &a, "-"], Some(second.as_bytes()));
+    assert_eq!(o.code, 0, "{}", o.stderr);
     let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
     assert_eq!(d["rows"].as_array().unwrap().len(), 1);
-    assert_eq!(d["rows"][0]["input_tokens"], 3000);
+    assert_eq!(d["rows"][0]["input_tokens"], 1600);
     assert_eq!(d["totals"]["output_tokens"], 1000);
+    assert_eq!(d["warnings"].as_array().unwrap().len(), 0);
 }
 
 #[test]
@@ -401,4 +406,38 @@ fn b3_cost_only_record_still_covers_usage_only_record() {
     assert_eq!(o.code, 0, "{}", o.stderr);
     let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
     assert_eq!(d["rows"][0]["cost_known"], true);
+}
+
+#[test]
+fn b4_same_file_twice_is_counted_once_with_warning() {
+    let a = fixture("f01-basis.synthetic.jsonl");
+    let o = run_with(&["--json", &a, &a], None);
+    assert_eq!(o.code, 0, "{}", o.stderr);
+    let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
+    assert_eq!(d["rows"][0]["input_tokens"], 1500);
+    assert_eq!(d["totals"]["output_tokens"], 500);
+    assert!(d["warnings"][0].as_str().unwrap().contains("identiek"));
+    assert!(o.stderr.contains("identiek"), "{}", o.stderr);
+    let t = run_with(&[&a, &a], None);
+    assert!(t.stdout.contains("waarschuwing: "), "{}", t.stdout);
+}
+
+#[test]
+fn b4_duplicate_bucket_result_is_counted_once_with_warning() {
+    let r = "{\"model\":\"m\",\"uncached_input_tokens\":10,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"output_tokens\":5}";
+    let bucket = format!("{{\"starting_at\":\"2026-10-01T00:00:00Z\",\"results\":[{r}]}}");
+    let doc = format!("{{\"data\":[{bucket},{bucket}]}}");
+    let o = run_with(&["--json", "-"], Some(doc.as_bytes()));
+    assert_eq!(o.code, 0, "{}", o.stderr);
+    let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
+    assert_eq!(d["rows"][0]["input_tokens"], 10);
+    assert_eq!(d["rows"][0]["output_tokens"], 5);
+    assert!(d["warnings"][0].as_str().unwrap().contains("dubbel"));
+    // Same result in a later bucket (other start) is real usage and is summed.
+    let later = bucket.replace("2026-10-01", "2026-10-02");
+    let doc = format!("{{\"data\":[{bucket},{later}]}}");
+    let o = run_with(&["--json", "-"], Some(doc.as_bytes()));
+    let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
+    assert_eq!(d["totals"]["input_tokens"], 20);
+    assert_eq!(d["warnings"].as_array().unwrap().len(), 0);
 }

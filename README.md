@@ -57,6 +57,11 @@ Rules:
   dimension) shows as `onbekend`. Timestamps that are not UTC are rejected.
 - OpenAI `input_tokens` is shown as reported; whether it includes the cached
   tokens is not stated in the source used, so compare with `cache_read` yourself.
+- Duplicates are not counted twice: an input identical to an earlier one (the same
+  file twice) is skipped, and so is an API result identical to one already seen in a
+  bucket with the same start (repeated buckets, overlapping pages). Each gives a
+  warning. Normalised JSONL lines are never de-duplicated: different inputs with
+  the same key are summed.
 - `has_more=true` in a response gives a warning: the file is one page of several
   and the totals are incomplete.
 - Cost is only shown when the source gives it. Without it the cost column says

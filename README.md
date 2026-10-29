@@ -52,14 +52,18 @@ The format is detected automatically.
 5. **OpenAI Costs API** (`GET /v1/organization/costs`): `amount.value` with currency `usd`.
    The unit of `amount.value` is not confirmed in the source; dollars are assumed
    and a warning says so. The response has no model, so `line_item` is shown as the model.
-   Same URL as above.
+   The source states no unit for `amount.value` (checked in review llmbill-eind-0001),
+   so it stays an assumption. Source: <https://developers.openai.com/api/reference/resources/admin/subresources/organization/subresources/usage>.
 
 Rules:
 
 - Nothing is guessed. A field the source leaves out (not grouped on that
   dimension) shows as `onbekend`. Timestamps that are not UTC are rejected.
-- OpenAI `input_tokens` is shown as reported; whether it includes the cached
-  tokens is not stated in the source used, so compare with `cache_read` yourself.
+- OpenAI `input_tokens` includes the cached and cache-write tokens (the source says
+  "including cached and cache-write tokens"). The `input` column therefore shows
+  `input_tokens - input_cached_tokens - input_cache_write_tokens`, the uncached input,
+  like Anthropic's `uncached_input_tokens`. A result where the cached and cache-write
+  tokens exceed `input_tokens` is rejected. Source: the OpenAI Usage API URL above.
 - Duplicates are not counted twice: an input identical to an earlier one (the same
   file twice) is skipped, and so is an API result identical to one already seen in a
   bucket with the same start (repeated buckets, overlapping pages). Each gives a

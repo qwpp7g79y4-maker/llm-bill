@@ -52,14 +52,18 @@ Het formaat wordt automatisch herkend.
 5. **OpenAI Costs API** (`GET /v1/organization/costs`): `amount.value` met valuta `usd`.
    De eenheid van `amount.value` is in de bron niet bevestigd; dollars zijn
    aangenomen en een waarschuwing meldt dat. Het antwoord heeft geen model, dus
-   `line_item` staat in de modelkolom. Zelfde URL als hierboven.
+   `line_item` staat in de modelkolom. De bron noemt geen eenheid voor `amount.value`
+   (gecontroleerd in review llmbill-eind-0001), dus het blijft een aanname. Bron: <https://developers.openai.com/api/reference/resources/admin/subresources/organization/subresources/usage>.
 
 Regels:
 
 - Er wordt niets geraden. Een veld dat de bron weglaat (niet op die dimensie
   gegroepeerd) staat als `onbekend`. Tijdstippen die niet in UTC zijn worden afgewezen.
-- OpenAI `input_tokens` staat zoals gemeld; of de gecachete tokens daarin zitten
-  staat niet in de gebruikte bron, vergelijk dus zelf met `cache_read`.
+- OpenAI `input_tokens` bevat de gecachete en cache-write tokens (de bron zegt
+  "including cached and cache-write tokens"). De kolom `input` toont daarom
+  `input_tokens - input_cached_tokens - input_cache_write_tokens`, de ongecachete input,
+  zoals Anthropic's `uncached_input_tokens`. Een resultaat waarin de gecachete en
+  cache-write tokens groter zijn dan `input_tokens` wordt geweigerd. Bron: de OpenAI Usage API-URL hierboven.
 - Dubbele gegevens worden niet dubbel geteld: een invoer die identiek is aan een eerdere
   (hetzelfde bestand twee keer) wordt overgeslagen, net als een API-resultaat dat gelijk
   is aan een al geziene in een bucket met dezelfde start (herhaalde buckets, overlappende

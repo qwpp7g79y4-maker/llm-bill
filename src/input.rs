@@ -325,20 +325,38 @@ fn cost_record(day: Day, provider: Provider, model: String, tier: Tier, cost: Mo
     }
 }
 
+/// OpenAI usage result. Per the source, `input_tokens` is "the aggregated number of
+/// input tokens used, including cached and cache-write tokens", so the uncached input
+/// is `input_tokens - input_cached_tokens - input_cache_write_tokens`.
+/// <https://developers.openai.com/api/reference/resources/admin/subresources/organization/subresources/usage>
 fn openai_usage(day: Day, r: &Obj) -> Result<Record> {
     let tier = if r.get("batch").and_then(Value::as_bool) == Some(true) {
         Tier::Batch
     } else {
         tier_name(opt_str(r, "service_tier")?)
     };
+    let input = uint(r, "input_tokens")?;
+    let cached = uint_or(r, "input_cached_tokens", 0)?;
+    let written = uint_or(r, "input_cache_write_tokens", 0)?;
+    let uncached = cached
+        .checked_add(written)
+        .and_then(|c| input.checked_sub(c))
+        .map_or_else(
+            || {
+                err(format!(
+                    "input_tokens: {input} is kleiner dan input_cached_tokens {cached} + input_cache_write_tokens {written}; de bron zegt dat input_tokens die bevat"
+                ))
+            },
+            Ok,
+        )?;
     Ok(Record {
         day,
         provider: Provider::Openai,
         model: model_name(opt_str(r, "model")?)?,
         tier,
-        input_tokens: uint(r, "input_tokens")?,
-        cache_read_tokens: uint_or(r, "input_cached_tokens", 0)?,
-        cache_write_tokens: uint_or(r, "input_cache_write_tokens", 0)?,
+        input_tokens: uncached,
+        cache_read_tokens: cached,
+        cache_write_tokens: written,
         output_tokens: uint(r, "output_tokens")?,
         requests: get(r, "num_model_requests")
             .map(|v| uint_value(v, "num_model_requests"))
@@ -347,7 +365,10 @@ fn openai_usage(day: Day, r: &Obj) -> Result<Record> {
     })
 }
 
-/// Costs result. The unit of `amount.value` is not confirmed in the scan (aanname: dollars).
+/// Costs result. The source gives `amount.value` as a number with a separate
+/// `currency` (`usd`) but does not state the unit, so dollars are an assumption and a
+/// warning says so. Source (usage and costs reference, checked in review llmbill-eind-0001):
+/// <https://developers.openai.com/api/reference/resources/admin/subresources/organization/subresources/usage>
 fn openai_cost(day: Day, r: &Obj, warnings: &mut Vec<String>) -> Result<Option<Record>> {
     let amount = as_obj(r.get("amount").unwrap_or(&Value::Null), "amount")?;
     if !req_str(amount, "currency")?.eq_ignore_ascii_case("usd") {

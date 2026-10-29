@@ -149,7 +149,8 @@ fn f09_openai_usage() {
     // 1790812800 is 2026-10-01T00:00:00Z.
     assert_eq!(row(&d, 0, "day"), "2026-10-01");
     assert_eq!(row(&d, 0, "provider"), "openai");
-    assert_eq!(row(&d, 0, "input_tokens"), "9300");
+    // OpenAI input_tokens (9300) includes the cached tokens (9000): 300 uncached.
+    assert_eq!(row(&d, 0, "input_tokens"), "300");
     assert_eq!(row(&d, 0, "cache_read_tokens"), "9000");
     assert_eq!(row(&d, 0, "requests"), "10");
 }
@@ -500,4 +501,52 @@ fn b5_stderr_write_error_does_not_panic() {
     let o = run_full(&["--json", f.as_str()], false, true);
     assert_eq!(o.code, 0);
     assert!(o.stdout.contains("has_more"));
+}
+
+fn openai_doc(input: u64, cached: u64, written: u64) -> String {
+    format!(
+        "{{\"data\":[{{\"start_time\":1790812800,\"results\":[{{\"input_tokens\":{input},\"output_tokens\":1,\"input_cached_tokens\":{cached},\"input_cache_write_tokens\":{written},\"model\":\"m\"}}]}}]}}"
+    )
+}
+
+#[test]
+fn b6_openai_input_excludes_cached_and_cache_write() {
+    let o = run_with(
+        &["--json", "-"],
+        Some(openai_doc(1000, 600, 100).as_bytes()),
+    );
+    assert_eq!(o.code, 0, "{}", o.stderr);
+    let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
+    assert_eq!(d["rows"][0]["input_tokens"], 300);
+    assert_eq!(d["rows"][0]["cache_read_tokens"], 600);
+    assert_eq!(d["rows"][0]["cache_write_tokens"], 100);
+    // Without cache fields nothing is subtracted.
+    let plain = "{\"data\":[{\"start_time\":1790812800,\"results\":[{\"input_tokens\":7,\"output_tokens\":1,\"model\":\"m\"}]}]}";
+    let d: serde_json::Value =
+        serde_json::from_str(&run_with(&["--json", "-"], Some(plain.as_bytes())).stdout).unwrap();
+    assert_eq!(d["rows"][0]["input_tokens"], 7);
+    // Cached plus written above input contradicts the source: refuse, do not wrap.
+    let o = run_with(&["-"], Some(openai_doc(100, 90, 20).as_bytes()));
+    assert_eq!(o.code, 2);
+    assert!(o.stderr.contains("input_tokens"), "{}", o.stderr);
+    assert!(o.stdout.is_empty());
+}
+
+#[test]
+fn b6_openai_amount_unit_is_a_documented_assumption() {
+    let o = run_with(
+        &["--json", &fixture("f11-openai-costs.synthetic.json")],
+        None,
+    );
+    let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
+    let w = d["warnings"][0].as_str().unwrap();
+    assert!(w.contains("aangenomen dollars"), "{w}");
+    for readme in [
+        include_str!("../README.md"),
+        include_str!("../README.nl.md"),
+    ] {
+        assert!(readme.contains("cache-write"));
+        assert!(readme.contains("organization/subresources/usage"));
+    }
+    assert!(include_str!("../src/input.rs").contains("organization/subresources/usage"));
 }

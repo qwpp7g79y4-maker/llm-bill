@@ -1,0 +1,23 @@
+[package]
+name = "llm-bill"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+authors = ["PEPAI <pep_ai@icloud.com>"]
+description = "Summarise LLM token usage and cost per provider, model and day from saved OpenAI and Anthropic usage/cost API responses"
+readme = "README.md"
+keywords = ["llm", "openai", "anthropic", "cost", "cli"]
+categories = ["command-line-utilities"]
+
+[lib]
+name = "llm_bill"
+path = "src/lib.rs"
+
+[[bin]]
+name = "llm-bill"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+serde_json = { version = "1.0", features = ["arbitrary_precision"] }

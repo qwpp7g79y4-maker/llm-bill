@@ -253,15 +253,9 @@ fn negative_and_huge_numbers() {
     // Each value fits in u64 but the sum overflows.
     let two = format!("{}{}", rec("18446744073709551615"), rec("1"));
     expect_fail(two.as_bytes(), "overflow");
-    // Money: negative, too large, too precise, exponent.
-    for cost in [
-        "-1.00",
-        "99999999999999999999.00",
-        "1.1234567890123",
-        "1e3",
-        ".5",
-        "1.",
-    ] {
+    // Money: negative, too large, or not a decimal. Extra digits and
+    // exponents are rounded in Money::parse (g1), not rejected.
+    for cost in ["-1.00", "99999999999999999999.00", ".5", "1."] {
         let line = format!(
             "{{\"day\":\"2026-10-01\",\"provider\":\"other\",\"model\":\"m\",\"input_tokens\":0,\"output_tokens\":0,\"cost_usd\":\"{cost}\"}}\n"
         );
@@ -567,4 +561,36 @@ fn n1_openai_batch_true_maps_to_batch_tier() {
     assert_eq!(tier("true"), "batch");
     assert_eq!(tier("false"), "standard");
     assert_eq!(tier("null"), "standard");
+}
+
+/// G-1: a float artefact or an exponent must not abort the run. Both round to
+/// 12 decimal places and the run prints rows plus a warning on stderr.
+#[test]
+fn g1_float_artifact_and_exponent_round_to_12() {
+    let doc = r#"{"data":[{"start_time":1790812800,"results":[
+        {"amount":{"value":0.30000000000000004,"currency":"usd"},"line_item":"voorbeeld-a"},
+        {"amount":{"value":1.4e-6,"currency":"usd"},"line_item":"voorbeeld-b"}
+    ]}]}"#;
+    let o = run_with(&["--json", "-"], Some(doc.as_bytes()));
+    assert_eq!(o.code, 0, "stdout={}\nstderr={}", o.stdout, o.stderr);
+    assert!(
+        o.stderr.contains("afgerond op 12 decimalen"),
+        "stdout={}\nstderr={}",
+        o.stdout,
+        o.stderr
+    );
+    let d: serde_json::Value = serde_json::from_str(&o.stdout).expect(&o.stdout);
+    let rows = d["rows"].as_array().expect(&o.stdout);
+    assert!(!rows.is_empty(), "{d}");
+    let mut costs: Vec<&str> = rows
+        .iter()
+        .map(|r| r["cost_usd"].as_str().unwrap())
+        .collect();
+    costs.sort_unstable();
+    assert_eq!(costs, ["0.0000014", "0.30"]);
+
+    let wide = llm_bill::model::Money::parse("0.30000000000000004", 0);
+    assert_eq!(wide.map(|m| m.to_string()).as_deref(), Ok("0.30"));
+    let exp = llm_bill::model::Money::parse("1.4e-6", 0);
+    assert_eq!(exp.map(|m| m.to_string()).as_deref(), Ok("0.0000014"));
 }

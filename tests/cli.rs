@@ -550,3 +550,21 @@ fn b6_openai_amount_unit_is_a_documented_assumption() {
     }
     assert!(include_str!("../src/input.rs").contains("organization/subresources/usage"));
 }
+
+#[test]
+fn n1_openai_batch_true_maps_to_batch_tier() {
+    let doc = |batch: &str| {
+        format!(
+            "{{\"data\":[{{\"start_time\":1790812800,\"results\":[{{\"input_tokens\":1,\"output_tokens\":1,\"model\":\"m\",\"batch\":{batch},\"service_tier\":\"default\"}}]}}]}}"
+        )
+    };
+    let tier = |batch: &str| {
+        let o = run_with(&["--json", "-"], Some(doc(batch).as_bytes()));
+        assert_eq!(o.code, 0, "{}", o.stderr);
+        let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
+        d["rows"][0]["service_tier"].as_str().unwrap().to_string()
+    };
+    assert_eq!(tier("true"), "batch");
+    assert_eq!(tier("false"), "standard");
+    assert_eq!(tier("null"), "standard");
+}

@@ -334,3 +334,24 @@ fn leap_day_and_unix_days() {
         assert!(o.stdout.contains(day), "{}", o.stdout);
     }
 }
+
+#[test]
+fn b2_json_and_text_escape_c0_c1_and_bidi() {
+    // ESC (C0), U+0085 (C1) and U+202E (bidi) inside the model name.
+    let line = "{\"day\":\"2026-10-01\",\"provider\":\"other\",\"model\":\"a\\u001b[31m\\u0085\\u202eb\",\"input_tokens\":1,\"output_tokens\":1}\n";
+    for args in [&["-"][..], &["--json", "-"][..]] {
+        let o = run_with(args, Some(line.as_bytes()));
+        assert_eq!(o.code, 0, "{}", o.stderr);
+        for bad in ['\u{1b}', '\u{85}', '\u{202e}'] {
+            assert!(!o.stdout.contains(bad), "{args:?}: raw {bad:?}");
+        }
+    }
+    let j = run_with(&["--json", "-"], Some(line.as_bytes()));
+    assert!(j.stdout.contains("\\u0085"), "{}", j.stdout);
+    assert!(j.stdout.contains("\\u202e"), "{}", j.stdout);
+    // The escaped JSON still parses back to the original model name.
+    let d: serde_json::Value = serde_json::from_str(&j.stdout).unwrap();
+    assert_eq!(d["rows"][0]["model"], "a\u{1b}[31m\u{85}\u{202e}b");
+    let t = run_with(&["-"], Some(line.as_bytes()));
+    assert!(t.stdout.contains("\\u{85}"), "{}", t.stdout);
+}

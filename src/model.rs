@@ -20,12 +20,19 @@ pub fn err<T>(msg: impl Into<String>) -> Result<T> {
     Err(Error(msg.into()))
 }
 
+/// Characters that must never reach a terminal raw: C0, DEL, C1 (U+0080..U+009F)
+/// and the bidirectional formatting characters.
+pub fn is_unsafe(c: char) -> bool {
+    let bidi =
+        matches!(c, '\u{200e}' | '\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}');
+    c.is_control() || bidi
+}
+
 /// Make user-supplied text safe to print: no raw control or bidi characters.
 pub fn esc(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
-        let bidi = matches!(c, '\u{200e}' | '\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}');
-        if c.is_control() || bidi {
+        if is_unsafe(c) {
             out.push_str(&format!("\\u{{{:x}}}", c as u32));
         } else {
             out.push(c);

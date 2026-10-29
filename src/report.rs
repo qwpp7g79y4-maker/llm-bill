@@ -1,6 +1,6 @@
 //! Aggregation per (day, provider, model, tier) and output rendering.
 
-use crate::model::{err, esc, Day, Money, Provider, Record, Result, Tier};
+use crate::model::{err, esc, is_unsafe, Day, Money, Provider, Record, Result, Tier};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
@@ -163,8 +163,19 @@ pub fn render_json(rows: &[Row], t: &Totals, warnings: &[String]) -> String {
             "cost_complete": t.cost_complete,
         },
     });
-    // serde_json escapes control characters, so the output holds no raw control bytes.
-    serde_json::to_string_pretty(&doc).unwrap_or_default()
+    // serde_json escapes C0 controls but leaves DEL, C1 (U+0085) and bidi characters
+    // raw. Outside strings the document is ASCII, so rewriting those as `\uXXXX`
+    // keeps it valid and parses back to the same value. Pretty-print newlines stay.
+    let text = serde_json::to_string_pretty(&doc).unwrap_or_default();
+    let mut out = String::with_capacity(text.len());
+    for c in text.chars() {
+        if c >= '\u{7f}' && is_unsafe(c) {
+            out.push_str(&format!("\\u{:04x}", c as u32));
+        } else {
+            out.push(c);
+        }
+    }
+    out
 }
 
 fn cost_text(c: Option<Money>, known: bool) -> String {

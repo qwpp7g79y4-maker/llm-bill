@@ -617,3 +617,38 @@ fn g2a_same_float_artifact_warns_once_in_json() {
         .count();
     assert_eq!(n, 1, "{d}");
 }
+
+/// `--help` on the real binary exits 0 and prints usage.
+#[test]
+fn help_flag_exits_zero() {
+    let o = run_with(&["--help"], None);
+    assert_eq!(o.code, 0, "stdout={}\nstderr={}", o.stdout, o.stderr);
+    assert!(o.stdout.contains("Usage: llm-bill"), "{}", o.stdout);
+    assert!(o.stdout.contains("--require-cost"), "{}", o.stdout);
+    assert!(o.stdout.contains("--version"), "{}", o.stdout);
+    assert!(!o.stderr.contains("panicked"), "{}", o.stderr);
+}
+
+/// Unknown option, missing file and broken input: a real error, non-zero, no panic.
+#[test]
+fn bad_input_exits_nonzero_without_panic() {
+    let check = |args: &[&str], stdin: Option<&[u8]>, needle: &str| {
+        let o = run_with(args, stdin);
+        assert_ne!(
+            o.code, 0,
+            "{args:?}: stdout={}\nstderr={}",
+            o.stdout, o.stderr
+        );
+        assert!(
+            o.stderr.contains(needle),
+            "{args:?}: stdout={}\nstderr={}",
+            o.stdout,
+            o.stderr
+        );
+        assert!(!o.stderr.contains("panicked"), "{args:?}: {}", o.stderr);
+        assert!(o.stdout.is_empty(), "{args:?}: {}", o.stdout);
+    };
+    check(&["--no-such-option"], None, "unexpected argument");
+    check(&["/nonexistent/llm-bill-test.jsonl"], None, "fout:");
+    check(&["-"], Some(br#"{"day":"#), "ongeldige JSON");
+}

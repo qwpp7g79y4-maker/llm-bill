@@ -5,16 +5,99 @@ saved API responses. Offline: it reads files, makes no network calls and needs n
 API key. Version 0.1.0 (unreleased).
 
 ```
-llm-bill [--json] [--require-cost] FILE...     # "-" reads stdin
+llm-bill [OPTIONS] <FILES>...
 ```
 
-Output is a text table (day, provider, model, tier, input, cache_read,
-cache_write, output, cost) with a total row, or `--json`. Several files are
-summed. Exit code 0 is success, 2 is bad input, bad usage or a failed
-write to stdout (a message on stderr). A failing stderr is ignored, so there is no
-panic and no exit 101 when stdout or stderr is full or closed. Control characters
-(C0, DEL, C1 such as U+0085) and bidirectional characters in data are escaped as
-`\u{..}` in text and as `\uXXXX` in `--json`.
+`--help` exits 0 and prints (English, this is the binary):
+
+```
+Summarise LLM token usage and cost per provider, model and day from saved API responses or the normalised JSONL. Reads files only, no network
+
+Usage: llm-bill [OPTIONS] <FILES>...
+
+Arguments:
+  <FILES>...  Input files; `-` reads standard input
+
+Options:
+      --json          Print JSON instead of the text table
+      --require-cost  Exit 2 when a row has tokens but no known cost
+  -h, --help          Print help
+  -V, --version       Print version
+```
+
+`--version` prints `llm-bill 0.1.0` and exits 0. `-` reads standard input.
+Each file must be valid UTF-8 and at most 268435456 bytes (256 MiB).
+
+Exit code 0 is success. Exit code 2 is bad input, bad usage (unknown option,
+or no files), or a failed write to stdout. Input and write errors go to stderr
+and start with `fout:`. Usage errors come from the argument parser and start
+with `error:`. A failing stderr is ignored, so there is no panic and no exit
+101 when stdout or stderr is full or closed.
+
+## Example
+
+Text report of `tests/fixtures/f01-basis.synthetic.jsonl` (exit 0, empty stderr):
+
+```
+$ llm-bill tests/fixtures/f01-basis.synthetic.jsonl
+day         provider   model              tier      input  cache_read  cache_write  output      cost
+2026-10-01  anthropic  voorbeeld-model-a  standard   1500         200            0     500  onbekend
+totaal                                               1500         200            0     500  onbekend
+```
+
+The same shape with a cost the source did give (`tests/fixtures/f04-bedrag.synthetic.jsonl`):
+
+```
+$ llm-bill tests/fixtures/f04-bedrag.synthetic.jsonl
+day         provider   model              tier      input  cache_read  cache_write  output   cost
+2026-10-02  anthropic  voorbeeld-model-a  standard      0           0            0       0  $1.23
+totaal                                                  0           0            0       0  $1.23
+```
+
+Columns are day, provider, model, tier, input, cache_read, cache_write, output
+and cost. Text columns are left-aligned, number columns right-aligned. The last
+row is `totaal`. `requests` is not in the text table; it is only in `--json`.
+Several files are summed.
+
+The cost cell is `$1.23` when the amount is complete, `$1.23+` when only some
+of the token records in that row have a cost, `onbekend` when there are tokens
+and no known cost, and `-` when there are no tokens and no cost (nothing is
+missing; `f05-nul.synthetic.jsonl` prints `-`).
+
+`--json` prints a pretty-printed document with `version` `"0.1"`, `warnings`,
+`rows` and `totals`. Row keys, sorted alphabetically, are `cache_read_tokens`,
+`cache_write_tokens`, `cost_known`, `cost_usd`, `day`, `input_tokens`, `model`,
+`output_tokens`, `provider`, `requests`, `service_tier`. `cost_usd` is `null`
+or a decimal string. The document ends at `}` and does not add a newline after
+it. Warnings in the text report are `waarschuwing: ...` lines on stdout, before
+the table. With `--json` those warnings are in the `warnings` array and are
+also printed on stderr.
+
+Bad invocation, all exit 2, stdout empty, stderr has no panic:
+
+```
+$ llm-bill --nope tests/fixtures/f01-basis.synthetic.jsonl
+error: unexpected argument '--nope' found
+
+  tip: to pass '--nope' as a value, use '-- --nope'
+
+Usage: llm-bill [OPTIONS] <FILES>...
+
+For more information, try '--help'.
+```
+
+```
+$ llm-bill /nonexistent/llm-bill-test.jsonl
+fout: /nonexistent/llm-bill-test.jsonl: No such file or directory (os error 2)
+```
+
+```
+$ printf '%s' '{"day":' | llm-bill -
+fout: regel 1: ongeldige JSON: EOF while parsing a value at line 1 column 7
+```
+
+Control characters (C0, DEL, C1 such as U+0085) and bidirectional characters
+in data are escaped as `\u{..}` in text and as `\uXXXX` in `--json`.
 
 ## Input formats
 
@@ -76,6 +159,17 @@ Rules:
   A row where only some of the records with tokens carry a cost shows `$X+` (and
   `cost_known: false`), also under `--require-cost`. A record with cost but no tokens
   (the Anthropic Cost API next to the Usage API) covers the usage records of its row.
+- OpenAI usage `batch: true` selects tier `batch` and overrides `service_tier`.
+  `batch: false` or null keeps `service_tier`. The API value `default` is
+  `standard`. A service-tier string the API sends that is not `standard`,
+  `default`, `batch`, `priority` or `flex` becomes `other`. A tier the API
+  omits becomes `onbekend`. Normalised JSONL rejects an unknown `service_tier`
+  or `provider` with exit 2.
+- More than 12 decimal places, or an exponent (`1.4e-6`), is rounded to 12
+  decimal places. The run continues and keeps a single warning,
+  `bedrag "…" afgerond op 12 decimalen`. `1.4e-6` is shown as `$0.0000014`.
+  This applies to decimal strings and to OpenAI `amount.value`. A JSON number
+  in normalised `cost_usd` is still rejected.
 
 ## Not (yet)
 

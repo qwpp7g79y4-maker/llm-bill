@@ -5,14 +5,97 @@ uit opgeslagen API-antwoorden. Offline: het leest bestanden, doet geen
 netwerkaanroepen en heeft geen API-sleutel nodig. Versie 0.1.0 (unreleased).
 
 ```
-llm-bill [--json] [--require-cost] BESTAND...     # "-" leest stdin
+llm-bill [OPTIONS] <FILES>...
 ```
 
-De uitvoer is een tekstabel (day, provider, model, tier, input, cache_read,
-cache_write, output, cost) met een totaalregel, of `--json`. Meerdere bestanden
-worden opgeteld. Exitcode 0 is gelukt, 2 is foute invoer, fout gebruik of een
-mislukte schrijfactie naar stdout (een melding op stderr). Een falende stderr wordt
+`--help` eindigt met exit 0 en print dit (Engels, zo is de binary):
+
+```
+Summarise LLM token usage and cost per provider, model and day from saved API responses or the normalised JSONL. Reads files only, no network
+
+Usage: llm-bill [OPTIONS] <FILES>...
+
+Arguments:
+  <FILES>...  Input files; `-` reads standard input
+
+Options:
+      --json          Print JSON instead of the text table
+      --require-cost  Exit 2 when a row has tokens but no known cost
+  -h, --help          Print help
+  -V, --version       Print version
+```
+
+`--version` print `llm-bill 0.1.0` en eindigt met exit 0. `-` leest stdin.
+Elk bestand moet geldige UTF-8 zijn en hoogstens 268435456 bytes (256 MiB).
+
+Exitcode 0 is gelukt. Exitcode 2 is foute invoer, fout gebruik (onbekende optie,
+of geen bestanden) of een mislukte schrijfactie naar stdout. Invoer- en
+schrijffouten gaan naar stderr en beginnen met `fout:`. Gebruiksfouten komen
+van de argumentparser en beginnen met `error:`. Een falende stderr wordt
 genegeerd, dus geen paniek en geen exit 101 bij een volle of gesloten stdout of stderr.
+
+## Voorbeeld
+
+Tekstrapport van `tests/fixtures/f01-basis.synthetic.jsonl` (exit 0, stderr leeg):
+
+```
+$ llm-bill tests/fixtures/f01-basis.synthetic.jsonl
+day         provider   model              tier      input  cache_read  cache_write  output      cost
+2026-10-01  anthropic  voorbeeld-model-a  standard   1500         200            0     500  onbekend
+totaal                                               1500         200            0     500  onbekend
+```
+
+Dezelfde vorm met een bedrag dat de bron wél geeft (`tests/fixtures/f04-bedrag.synthetic.jsonl`):
+
+```
+$ llm-bill tests/fixtures/f04-bedrag.synthetic.jsonl
+day         provider   model              tier      input  cache_read  cache_write  output   cost
+2026-10-02  anthropic  voorbeeld-model-a  standard      0           0            0       0  $1.23
+totaal                                                  0           0            0       0  $1.23
+```
+
+Kolommen: day, provider, model, tier, input, cache_read, cache_write, output
+en cost. Tekstkolommen links uitgelijnd, getalkolommen rechts. De laatste rij
+is `totaal`. `requests` staat niet in de teksttabel; alleen in `--json`.
+Meerdere bestanden worden opgeteld.
+
+De kostencel is `$1.23` bij een volledig bedrag, `$1.23+` als maar een deel
+van de tokenrecords in die rij een bedrag heeft, `onbekend` bij tokens zonder
+bekend bedrag, en `-` bij geen tokens en geen bedrag (er mist niets;
+`f05-nul.synthetic.jsonl` print `-`).
+
+`--json` print een pretty-printed document met `version` `"0.1"`, `warnings`,
+`rows` en `totals`. Rijsleutels, alfabetisch, zijn `cache_read_tokens`,
+`cache_write_tokens`, `cost_known`, `cost_usd`, `day`, `input_tokens`, `model`,
+`output_tokens`, `provider`, `requests`, `service_tier`. `cost_usd` is `null`
+of een decimale string. Het document eindigt op `}` en zet daar geen newline
+achter. Waarschuwingen in het tekstrapport zijn regels `waarschuwing: ...` op
+stdout, vóór de tabel. Bij `--json` staan die waarschuwingen in de array
+`warnings` en ook op stderr.
+
+Foute aanroep, allemaal exit 2, stdout leeg, stderr zonder paniek:
+
+```
+$ llm-bill --nope tests/fixtures/f01-basis.synthetic.jsonl
+error: unexpected argument '--nope' found
+
+  tip: to pass '--nope' as a value, use '-- --nope'
+
+Usage: llm-bill [OPTIONS] <FILES>...
+
+For more information, try '--help'.
+```
+
+```
+$ llm-bill /nonexistent/llm-bill-test.jsonl
+fout: /nonexistent/llm-bill-test.jsonl: No such file or directory (os error 2)
+```
+
+```
+$ printf '%s' '{"day":' | llm-bill -
+fout: regel 1: ongeldige JSON: EOF while parsing a value at line 1 column 7
+```
+
 Stuurtekens (C0, DEL, C1 zoals U+0085) en bidi-tekens in data worden geëscaped als
 `\u{..}` in tekst en als `\uXXXX` in `--json`.
 
@@ -76,6 +159,17 @@ Regels:
   Een rij waarvan maar een deel van de records met tokens een bedrag heeft, toont `$X+`
   (en `cost_known: false`), ook bij `--require-cost`. Een record met bedrag maar zonder
   tokens (de Anthropic Cost API naast de Usage API) dekt de usage-records van zijn rij.
+- OpenAI-usage `batch: true` kiest tier `batch` en wint van `service_tier`.
+  `batch: false` of null houdt `service_tier`. De API-waarde `default` is
+  `standard`. Een servicetier-string die de API stuurt en die niet `standard`,
+  `default`, `batch`, `priority` of `flex` is, wordt `other`. Een tier die de
+  API weglaat wordt `onbekend`. Genormaliseerd JSONL weigert een onbekende
+  `service_tier` of `provider` met exit 2.
+- Meer dan 12 decimalen, of een exponent (`1.4e-6`), wordt afgerond op 12
+  decimalen. De run gaat door en bewaart één waarschuwing,
+  `bedrag "…" afgerond op 12 decimalen`. `1.4e-6` verschijnt als `$0.0000014`.
+  Dit geldt voor decimale strings en voor OpenAI `amount.value`. Een
+  JSON-getal in genormaliseerd `cost_usd` wordt nog steeds afgewezen.
 
 ## Nog niet
 

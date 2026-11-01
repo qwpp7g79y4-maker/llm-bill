@@ -25,6 +25,9 @@ Dates below are the git author dates on `main`.
   (2026-10-29).
 - Integration tests: `--help` exits 0; an unknown option, a missing file and
   broken input exit non-zero with an error on stderr and without a panic.
+- Handbook: roff manual `man/llm-bill.1`, fictional `examples/one-row.json`
+  with the command and exit code in `examples/README.md`, and
+  `tests/handbook_help.rs`. `README.md` points at the manual (2026-11-01).
 
 ### Changed
 

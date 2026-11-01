@@ -4,6 +4,8 @@ Summarise LLM token usage and cost per day, provider, model and service tier fro
 saved API responses. Offline: it reads files, makes no network calls and needs no
 API key. Version 0.1.0 (unreleased).
 
+The manual page is `man/llm-bill.1`.
+
 ```
 llm-bill [OPTIONS] <FILES>...
 ```

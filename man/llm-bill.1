@@ -1,0 +1,61 @@
+.TH LLM-BILL 1 "2026-11-01" "llm-bill 0.1.0" "User Commands"
+.SH NAME
+llm-bill \- summarise LLM token usage and cost from saved API responses
+.SH SYNOPSIS
+.nf
+llm-bill [OPTIONS] <FILES>...
+.fi
+.SH DESCRIPTION
+Summarise LLM token usage and cost per provider, model and day from saved API
+responses or the normalised JSONL. Reads files only, no network.
+.PP
+There are no subcommands.
+A file argument of
+.B -
+reads standard input.
+Each file must be valid UTF-8.
+.SH ARGUMENTS
+.TP
+.I FILES...
+Input files;
+.B -
+reads standard input.
+.SH OPTIONS
+.TP
+.B --json
+Print JSON instead of the text table
+.TP
+.B --require-cost
+Exit 2 when a row has tokens but no known cost
+.TP
+.BR -h ", " --help
+Print help
+.TP
+.BR -V ", " --version
+Print version
+.SH EXIT STATUS
+.TP
+.B 0
+The summary was written to standard output.
+.TP
+.B 2
+Bad usage (unknown option, or no files), bad input, a row with tokens but no
+known cost when
+.B --require-cost
+is set, or a failed write to standard output.
+Program errors on standard error start with \fBfout:\fP.
+Usage errors from the argument parser start with \fBerror:\fP.
+.SH EXAMPLES
+Text report of the fictional file
+.IR examples/one-row.json .
+Exit status 0.
+.PP
+.nf
+llm-bill examples/one-row.json
+.fi
+.PP
+The same file as JSON. Exit status 0.
+.PP
+.nf
+llm-bill --json examples/one-row.json
+.fi

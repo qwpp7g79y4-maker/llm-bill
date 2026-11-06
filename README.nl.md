@@ -140,8 +140,10 @@ Het formaat wordt automatisch herkend.
 
 Regels:
 
-- Er wordt niets geraden. Een veld dat de bron weglaat (niet op die dimensie
+- Een veld dat de bron weglaat (niet op die dimensie
   gegroepeerd) staat als `onbekend`. Tijdstippen die niet in UTC zijn worden afgewezen.
+  OpenAI `amount.value` wordt als dollars gelezen. Die eenheid is een aanname, en
+  een waarschuwing meldt dat.
 - OpenAI `input_tokens` bevat de gecachete en cache-write tokens (de bron zegt
   "including cached and cache-write tokens"). De kolom `input` toont daarom
   `input_tokens - input_cached_tokens - input_cache_write_tokens`, de ongecachete input,

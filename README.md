@@ -142,8 +142,10 @@ The format is detected automatically.
 
 Rules:
 
-- Nothing is guessed. A field the source leaves out (not grouped on that
+- A field the source leaves out (not grouped on that
   dimension) shows as `onbekend`. Timestamps that are not UTC are rejected.
+  OpenAI `amount.value` is read as dollars. That unit is an assumption, and a
+  warning says so.
 - OpenAI `input_tokens` includes the cached and cache-write tokens (the source says
   "including cached and cache-write tokens"). The `input` column therefore shows
   `input_tokens - input_cached_tokens - input_cache_write_tokens`, the uncached input,

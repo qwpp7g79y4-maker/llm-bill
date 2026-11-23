@@ -4,6 +4,8 @@ Vat LLM-tokengebruik en -kosten samen per dag, aanbieder, model en servicetier,
 uit opgeslagen API-antwoorden. Offline: het leest bestanden, doet geen
 netwerkaanroepen en heeft geen API-sleutel nodig. Versie 0.1.0 (unreleased).
 
+De tests en de gemeten getallen staan in `QUALITY.md`.
+
 ```
 llm-bill [OPTIONS] <FILES>...
 ```

@@ -4,6 +4,8 @@ Summarise LLM token usage and cost per day, provider, model and service tier fro
 saved API responses. Offline: it reads files, makes no network calls and needs no
 API key. Version 0.1.0 (unreleased).
 
+The tests and the measured numbers are in `QUALITY.md`.
+
 The manual page is `man/llm-bill.1`.
 
 ```

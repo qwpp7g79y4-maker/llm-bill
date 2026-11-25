@@ -188,3 +188,5 @@ Fixtures in `tests/fixtures/` zijn synthetisch. Geen echte klantdata.
 ## Licentie
 
 MIT OR Apache-2.0.
+
+De licenties van de externe crates in het programma staan in [THIRD-PARTY-LICENSES.html](THIRD-PARTY-LICENSES.html).

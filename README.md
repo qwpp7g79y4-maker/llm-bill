@@ -191,3 +191,5 @@ Fixtures in `tests/fixtures/` are synthetic. No real customer data.
 ## License
 
 MIT OR Apache-2.0.
+
+The licenses of the third-party crates built into the binary are listed in [THIRD-PARTY-LICENSES.html](THIRD-PARTY-LICENSES.html).

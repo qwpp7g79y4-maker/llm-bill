@@ -11,6 +11,7 @@ repository = "https://github.com/qwpp7g79y4-maker/llm-bill"
 homepage = "https://github.com/qwpp7g79y4-maker/llm-bill"
 documentation = "https://github.com/qwpp7g79y4-maker/llm-bill"
 keywords = ["llm", "openai", "anthropic", "cost", "cli"]
+exclude = ["*-plugin/"]
 categories = ["command-line-utilities"]
 
 [lib]

@@ -4,7 +4,7 @@
 
 Summarise LLM token usage and cost per day, provider, model and service tier from
 saved API responses. Offline: it reads files, makes no network calls and needs no
-API key. Version 0.1.0 (unreleased).
+API key. Version 0.1.0.
 
 The tests and the measured numbers are in `QUALITY.md`.
 
@@ -42,7 +42,7 @@ with `error:`. A failing stderr is ignored, so there is no panic and no exit
 
 ## Installation
 
-Install with `cargo install --locked --path .` from a clone of this repository (Rust 1.85 or newer).
+Install from crates.io with `cargo install llm-bill` (Rust 1.85 or newer), or with `cargo install --locked --path .` from a clone of this repository.
 
 ## Quickstart in 5 minutes
 

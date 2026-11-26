@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2026-11-25
 
-Package version in `Cargo.toml` is 0.1.0. Nothing has been tagged or published.
+Package version in `Cargo.toml` is 0.1.0.
 Dates below are the git author dates on `main`.
 
 ### Added

@@ -46,10 +46,7 @@ pub fn parse_with(text: &str, seen: &mut HashSet<String>) -> Result<Parsed> {
         }
         let n = i + 1;
         let v: Value = serde_json::from_str(line).map_err(|e| {
-            crate::model::Error(format!(
-                "line {n}: invalid JSON: {}",
-                esc(&e.to_string())
-            ))
+            crate::model::Error(format!("line {n}: invalid JSON: {}", esc(&e.to_string())))
         })?;
         let rec =
             parse_normalised(&v).map_err(|e| crate::model::Error(format!("line {n}: {e}")))?;
@@ -82,10 +79,7 @@ fn uint_value(v: &Value, key: &str) -> Result<u64> {
     };
     let text = n.to_string();
     if text.starts_with('-') {
-        return err(format!(
-            "{key}: negative number {} not allowed",
-            esc(&text)
-        ));
+        return err(format!("{key}: negative number {} not allowed", esc(&text)));
     }
     text.parse::<u64>().map_err(|_| {
         crate::model::Error(format!(
@@ -378,8 +372,7 @@ fn openai_cost(day: Day, r: &Obj, warnings: &mut Vec<String>) -> Result<Option<R
         return err("amount.value: expected a number");
     };
     let cost = Money::parse(&n.to_string(), 0)?;
-    let note =
-        "OpenAI amount.value: unit not confirmed by the source, assumed dollars".to_string();
+    let note = "OpenAI amount.value: unit not confirmed by the source, assumed dollars".to_string();
     if !warnings.contains(&note) {
         warnings.push(note);
     }

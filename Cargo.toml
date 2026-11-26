@@ -8,7 +8,6 @@ authors = ["PEPAI <pep_ai@icloud.com>"]
 description = "Summarise LLM token usage and cost per provider, model and day from saved OpenAI and Anthropic usage/cost API responses"
 readme = "README.md"
 repository = "https://github.com/qwpp7g79y4-maker/llm-bill"
-homepage = "https://github.com/qwpp7g79y4-maker/llm-bill"
 documentation = "https://github.com/qwpp7g79y4-maker/llm-bill"
 keywords = ["llm", "openai", "anthropic", "cost", "cli"]
 exclude = ["*-plugin/"]

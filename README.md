@@ -4,7 +4,7 @@
 
 Summarise LLM token usage and cost per day, provider, model and service tier from
 saved API responses. Offline: it reads files, makes no network calls and needs no
-API key. Version 0.1.0.
+API key. Version 0.1.1.
 
 The tests and the measured numbers are in `QUALITY.md`.
 
@@ -31,7 +31,7 @@ Options:
   -V, --version       Print version
 ```
 
-`--version` prints `llm-bill 0.1.0` and exits 0. `-` reads standard input.
+`--version` prints `llm-bill 0.1.1` and exits 0. `-` reads standard input.
 Each file must be valid UTF-8 and at most 268435456 bytes (256 MiB).
 
 Exit code 0 is success. Exit code 2 is bad input, bad usage (unknown option,

@@ -4,7 +4,7 @@
 
 Vat LLM-tokengebruik en -kosten samen per dag, aanbieder, model en servicetier,
 uit opgeslagen API-antwoorden. Offline: het leest bestanden, doet geen
-netwerkaanroepen en heeft geen API-sleutel nodig. Versie 0.1.0 (unreleased).
+netwerkaanroepen en heeft geen API-sleutel nodig. Versie 0.1.1 (unreleased).
 
 De tests en de gemeten getallen staan in `QUALITY.md`.
 
@@ -29,7 +29,7 @@ Options:
   -V, --version       Print version
 ```
 
-`--version` print `llm-bill 0.1.0` en eindigt met exit 0. `-` leest stdin.
+`--version` print `llm-bill 0.1.1` en eindigt met exit 0. `-` leest stdin.
 Elk bestand moet geldige UTF-8 zijn en hoogstens 268435456 bytes (256 MiB).
 
 Exitcode 0 is gelukt. Exitcode 2 is foute invoer, fout gebruik (onbekende optie,

@@ -49,27 +49,27 @@ Install with `cargo install --locked --path .` from a clone of this repository (
 1. Clone the repository: `git clone https://github.com/qwpp7g79y4-maker/llm-bill` and `cd llm-bill`.
 2. Install: `cargo install --locked --path .`
 3. Run the small example: `llm-bill examples/one-row.json` (exit 0).
-4. Print the text report of a synthetic fixture: `llm-bill tests/fixtures/f01-basis.synthetic.jsonl` (the output is shown under Example).
-5. Get the same summary as JSON: `llm-bill --json tests/fixtures/f01-basis.synthetic.jsonl`.
+4. Print the text report of a synthetic fixture: `llm-bill tests/fixtures/f01-basic.synthetic.jsonl` (the output is shown under Example).
+5. Get the same summary as JSON: `llm-bill --json tests/fixtures/f01-basic.synthetic.jsonl`.
 
 ## Example
 
-Text report of `tests/fixtures/f01-basis.synthetic.jsonl` (exit 0, empty stderr):
+Text report of `tests/fixtures/f01-basic.synthetic.jsonl` (exit 0, empty stderr):
 
 ```
-$ llm-bill tests/fixtures/f01-basis.synthetic.jsonl
-day         provider   model              tier      input  cache_read  cache_write  output     cost
-2026-10-01  anthropic  voorbeeld-model-a  standard   1500         200            0     500  unknown
-total                                                1500         200            0     500  unknown
+$ llm-bill tests/fixtures/f01-basic.synthetic.jsonl
+day         provider   model            tier      input  cache_read  cache_write  output     cost
+2026-10-01  anthropic  example-model-a  standard   1500         200            0     500  unknown
+total                                              1500         200            0     500  unknown
 ```
 
-The same shape with a cost the source did give (`tests/fixtures/f04-bedrag.synthetic.jsonl`):
+The same shape with a cost the source did give (`tests/fixtures/f04-amount.synthetic.jsonl`):
 
 ```
-$ llm-bill tests/fixtures/f04-bedrag.synthetic.jsonl
-day         provider   model              tier      input  cache_read  cache_write  output   cost
-2026-10-02  anthropic  voorbeeld-model-a  standard      0           0            0       0  $1.23
-total                                                   0           0            0       0  $1.23
+$ llm-bill tests/fixtures/f04-amount.synthetic.jsonl
+day         provider   model            tier      input  cache_read  cache_write  output   cost
+2026-10-02  anthropic  example-model-a  standard      0           0            0       0  $1.23
+total                                                 0           0            0       0  $1.23
 ```
 
 Columns are day, provider, model, tier, input, cache_read, cache_write, output
@@ -80,7 +80,7 @@ Several files are summed.
 The cost cell is `$1.23` when the amount is complete, `$1.23+` when only some
 of the token records in that row have a cost, `unknown` when there are tokens
 and no known cost, and `-` when there are no tokens and no cost (nothing is
-missing; `f05-nul.synthetic.jsonl` prints `-`).
+missing; `f05-zero.synthetic.jsonl` prints `-`).
 
 `--json` prints a pretty-printed document with `version` `"0.1"`, `warnings`,
 `rows` and `totals`. Row keys, sorted alphabetically, are `cache_read_tokens`,
@@ -94,7 +94,7 @@ also printed on stderr.
 Bad invocation, all exit 2, stdout empty, stderr has no panic:
 
 ```
-$ llm-bill --nope tests/fixtures/f01-basis.synthetic.jsonl
+$ llm-bill --nope tests/fixtures/f01-basic.synthetic.jsonl
 error: unexpected argument '--nope' found
 
   tip: to pass '--nope' as a value, use '-- --nope'

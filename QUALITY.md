@@ -10,6 +10,8 @@ pep: 6.5
 
 Score: 10 − 3.5 = 6.5. Other open points in this file have no class and do not count. They are not repaired yet.
 
+Update 2026-11-26: the fixture and model names and tests/fixtures/README.md are now English (branch fix/english-fixtures). The score above stays as it was set and is not recalculated in this change.
+
 Command: `cargo test --locked --no-fail-fast`
 Date: 2026-11-23
 

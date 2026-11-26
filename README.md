@@ -1,5 +1,7 @@
 # llm-bill
 
+[![crates.io](https://img.shields.io/crates/v/llm-bill.svg)](https://crates.io/crates/llm-bill) [![downloads](https://img.shields.io/crates/d/llm-bill.svg)](https://crates.io/crates/llm-bill) [![CI](https://github.com/qwpp7g79y4-maker/llm-bill/actions/workflows/ci.yml/badge.svg)](https://github.com/qwpp7g79y4-maker/llm-bill/actions/workflows/ci.yml) [![PEPAI checked](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Fllm-bill%2Fmain%2F.github%2Fbadge.json)](QUALITY.md) [![MSRV 1.85](https://img.shields.io/badge/MSRV-1.85-blue.svg)](https://github.com/qwpp7g79y4-maker/llm-bill/blob/main/Cargo.toml) [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/qwpp7g79y4-maker/llm-bill#license)
+
 Summarise LLM token usage and cost per day, provider, model and service tier from
 saved API responses. Offline: it reads files, makes no network calls and needs no
 API key. Version 0.1.0 (unreleased).
@@ -34,9 +36,21 @@ Each file must be valid UTF-8 and at most 268435456 bytes (256 MiB).
 
 Exit code 0 is success. Exit code 2 is bad input, bad usage (unknown option,
 or no files), or a failed write to stdout. Input and write errors go to stderr
-and start with `fout:`. Usage errors come from the argument parser and start
+and start with `error:`. Usage errors come from the argument parser and also start
 with `error:`. A failing stderr is ignored, so there is no panic and no exit
 101 when stdout or stderr is full or closed.
+
+## Installation
+
+Install with `cargo install --locked --path .` from a clone of this repository (Rust 1.85 or newer).
+
+## Quickstart in 5 minutes
+
+1. Clone the repository: `git clone https://github.com/qwpp7g79y4-maker/llm-bill` and `cd llm-bill`.
+2. Install: `cargo install --locked --path .`
+3. Run the small example: `llm-bill examples/one-row.json` (exit 0).
+4. Print the text report of a synthetic fixture: `llm-bill tests/fixtures/f01-basis.synthetic.jsonl` (the output is shown under Example).
+5. Get the same summary as JSON: `llm-bill --json tests/fixtures/f01-basis.synthetic.jsonl`.
 
 ## Example
 
@@ -44,9 +58,9 @@ Text report of `tests/fixtures/f01-basis.synthetic.jsonl` (exit 0, empty stderr)
 
 ```
 $ llm-bill tests/fixtures/f01-basis.synthetic.jsonl
-day         provider   model              tier      input  cache_read  cache_write  output      cost
-2026-10-01  anthropic  voorbeeld-model-a  standard   1500         200            0     500  onbekend
-totaal                                               1500         200            0     500  onbekend
+day         provider   model              tier      input  cache_read  cache_write  output     cost
+2026-10-01  anthropic  voorbeeld-model-a  standard   1500         200            0     500  unknown
+total                                                1500         200            0     500  unknown
 ```
 
 The same shape with a cost the source did give (`tests/fixtures/f04-bedrag.synthetic.jsonl`):
@@ -55,16 +69,16 @@ The same shape with a cost the source did give (`tests/fixtures/f04-bedrag.synth
 $ llm-bill tests/fixtures/f04-bedrag.synthetic.jsonl
 day         provider   model              tier      input  cache_read  cache_write  output   cost
 2026-10-02  anthropic  voorbeeld-model-a  standard      0           0            0       0  $1.23
-totaal                                                  0           0            0       0  $1.23
+total                                                   0           0            0       0  $1.23
 ```
 
 Columns are day, provider, model, tier, input, cache_read, cache_write, output
 and cost. Text columns are left-aligned, number columns right-aligned. The last
-row is `totaal`. `requests` is not in the text table; it is only in `--json`.
+row is `total`. `requests` is not in the text table; it is only in `--json`.
 Several files are summed.
 
 The cost cell is `$1.23` when the amount is complete, `$1.23+` when only some
-of the token records in that row have a cost, `onbekend` when there are tokens
+of the token records in that row have a cost, `unknown` when there are tokens
 and no known cost, and `-` when there are no tokens and no cost (nothing is
 missing; `f05-nul.synthetic.jsonl` prints `-`).
 
@@ -73,7 +87,7 @@ missing; `f05-nul.synthetic.jsonl` prints `-`).
 `cache_write_tokens`, `cost_known`, `cost_usd`, `day`, `input_tokens`, `model`,
 `output_tokens`, `provider`, `requests`, `service_tier`. `cost_usd` is `null`
 or a decimal string. The document ends at `}` and does not add a newline after
-it. Warnings in the text report are `waarschuwing: ...` lines on stdout, before
+it. Warnings in the text report are `warning: ...` lines on stdout, before
 the table. With `--json` those warnings are in the `warnings` array and are
 also printed on stderr.
 
@@ -92,12 +106,12 @@ For more information, try '--help'.
 
 ```
 $ llm-bill /nonexistent/llm-bill-test.jsonl
-fout: /nonexistent/llm-bill-test.jsonl: No such file or directory (os error 2)
+error: /nonexistent/llm-bill-test.jsonl: No such file or directory (os error 2)
 ```
 
 ```
 $ printf '%s' '{"day":' | llm-bill -
-fout: regel 1: ongeldige JSON: EOF while parsing a value at line 1 column 7
+error: line 1: invalid JSON: EOF while parsing a value at line 1 column 7
 ```
 
 Control characters (C0, DEL, C1 such as U+0085) and bidirectional characters
@@ -145,7 +159,7 @@ The format is detected automatically.
 Rules:
 
 - A field the source leaves out (not grouped on that
-  dimension) shows as `onbekend`. Timestamps that are not UTC are rejected.
+  dimension) shows as `unknown`. Timestamps that are not UTC are rejected.
   OpenAI `amount.value` is read as dollars. That unit is an assumption, and a
   warning says so.
 - OpenAI `input_tokens` includes the cached and cache-write tokens (the source says
@@ -161,7 +175,7 @@ Rules:
 - `has_more=true` in a response gives a warning: the file is one page of several
   and the totals are incomplete.
 - Cost is only shown when the source gives it. Without it the cost column says
-  `onbekend`; `--require-cost` turns that into exit code 2. There is no price file yet.
+  `unknown`; `--require-cost` turns that into exit code 2. There is no price file yet.
   A row where only some of the records with tokens carry a cost shows `$X+` (and
   `cost_known: false`), also under `--require-cost`. A record with cost but no tokens
   (the Anthropic Cost API next to the Usage API) covers the usage records of its row.
@@ -169,11 +183,11 @@ Rules:
   `batch: false` or null keeps `service_tier`. The API value `default` is
   `standard`. A service-tier string the API sends that is not `standard`,
   `default`, `batch`, `priority` or `flex` becomes `other`. A tier the API
-  omits becomes `onbekend`. Normalised JSONL rejects an unknown `service_tier`
+  omits becomes `unknown`. Normalised JSONL rejects an unknown `service_tier`
   or `provider` with exit 2.
 - More than 12 decimal places, or an exponent (`1.4e-6`), is rounded to 12
   decimal places. The run continues and keeps a single warning,
-  `bedrag "…" afgerond op 12 decimalen`. `1.4e-6` is shown as `$0.0000014`.
+  `amount "…" rounded to 12 decimal places`. `1.4e-6` is shown as `$0.0000014`.
   This applies to decimal strings and to OpenAI `amount.value`. A JSON number
   in normalised `cost_usd` is still rejected.
 
@@ -187,6 +201,10 @@ Rules:
 - Fetching from the provider APIs (needs an admin key). Save the response to a file.
 
 Fixtures in `tests/fixtures/` are synthetic. No real customer data.
+
+## Maintenance
+
+After a release the tool is dormant: a new version appears only for a reported bug, a request, or a security problem. Security always comes first.
 
 ## License
 

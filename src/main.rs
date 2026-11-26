@@ -33,9 +33,9 @@ fn read(path: &PathBuf) -> Result<String, String> {
     let name = esc(&path.to_string_lossy());
     res.map_err(|e| format!("{name}: {}", esc(&e.to_string())))?;
     if buf.len() as u64 > MAX_BYTES {
-        return Err(format!("{name}: bestand groter dan {MAX_BYTES} bytes"));
+        return Err(format!("{name}: file larger than {MAX_BYTES} bytes"));
     }
-    String::from_utf8(buf).map_err(|_| format!("{name}: geen geldige UTF-8"))
+    String::from_utf8(buf).map_err(|_| format!("{name}: not valid UTF-8"))
 }
 
 /// Print a line on stderr. A failing stderr is ignored: `eprintln!` would panic.
@@ -65,20 +65,20 @@ fn main() -> ExitCode {
                 .and_then(|()| stdout.flush())
             {
                 note(&format!(
-                    "fout: schrijven naar stdout mislukt: {}",
+                    "error: writing to stdout failed: {}",
                     esc(&e.to_string())
                 ));
                 return ExitCode::from(2);
             }
             if args.json {
                 for w in &warnings {
-                    note(&format!("waarschuwing: {}", esc(w)));
+                    note(&format!("warning: {}", esc(w)));
                 }
             }
             ExitCode::SUCCESS
         }
         Err(e) => {
-            note(&format!("fout: {e}"));
+            note(&format!("error: {e}"));
             ExitCode::from(2)
         }
     }

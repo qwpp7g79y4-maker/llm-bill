@@ -1,5 +1,7 @@
 # Quality
 
+pep: 10
+
 Command: `cargo test --locked --no-fail-fast`
 Date: 2026-11-23
 

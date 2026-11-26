@@ -1,6 +1,6 @@
 //! Readers: normalised JSONL, Anthropic usage/cost reports, OpenAI usage/costs.
 //!
-//! Anything the scan marks `onbekend` is an error or the literal "onbekend",
+//! Anything the scan marks `unknown` is an error or the literal "unknown",
 //! never a guess. Unknown timezones are rejected.
 
 use crate::model::{err, esc, Day, Money, Provider, Record, Result, Tier};
@@ -10,7 +10,7 @@ use std::collections::HashSet;
 type Obj = Map<String, Value>;
 
 /// Placeholder for fields the source leaves out (not grouped on that dimension).
-pub const UNKNOWN: &str = "onbekend";
+pub const UNKNOWN: &str = "unknown";
 
 #[derive(Debug, Default)]
 pub struct Parsed {
@@ -29,7 +29,7 @@ pub fn parse(text: &str) -> Result<Parsed> {
 pub fn parse_with(text: &str, seen: &mut HashSet<String>) -> Result<Parsed> {
     let trimmed = text.trim();
     if trimmed.is_empty() {
-        return err("lege invoer");
+        return err("empty input");
     }
     let mut out = Parsed::default();
     if trimmed.starts_with('{') {
@@ -46,13 +46,10 @@ pub fn parse_with(text: &str, seen: &mut HashSet<String>) -> Result<Parsed> {
         }
         let n = i + 1;
         let v: Value = serde_json::from_str(line).map_err(|e| {
-            crate::model::Error(format!(
-                "regel {n}: ongeldige JSON: {}",
-                esc(&e.to_string())
-            ))
+            crate::model::Error(format!("line {n}: invalid JSON: {}", esc(&e.to_string())))
         })?;
         let rec =
-            parse_normalised(&v).map_err(|e| crate::model::Error(format!("regel {n}: {e}")))?;
+            parse_normalised(&v).map_err(|e| crate::model::Error(format!("line {n}: {e}")))?;
         out.records.push(rec);
     }
     finish(out)
@@ -60,7 +57,7 @@ pub fn parse_with(text: &str, seen: &mut HashSet<String>) -> Result<Parsed> {
 
 fn finish(out: Parsed) -> Result<Parsed> {
     if out.records.is_empty() {
-        return err("geen gegevens gevonden in de invoer");
+        return err("no data found in the input");
     }
     Ok(out)
 }
@@ -69,7 +66,7 @@ fn finish(out: Parsed) -> Result<Parsed> {
 
 fn as_obj<'a>(v: &'a Value, what: &str) -> Result<&'a Obj> {
     v.as_object()
-        .map_or_else(|| err(format!("{what}: verwacht een object")), Ok)
+        .map_or_else(|| err(format!("{what}: expected an object")), Ok)
 }
 
 fn get<'a>(o: &'a Obj, key: &str) -> Option<&'a Value> {
@@ -78,18 +75,15 @@ fn get<'a>(o: &'a Obj, key: &str) -> Option<&'a Value> {
 
 fn uint_value(v: &Value, key: &str) -> Result<u64> {
     let Value::Number(n) = v else {
-        return err(format!("{key}: verwacht een geheel getal"));
+        return err(format!("{key}: expected an integer"));
     };
     let text = n.to_string();
     if text.starts_with('-') {
-        return err(format!(
-            "{key}: negatief getal {} niet toegestaan",
-            esc(&text)
-        ));
+        return err(format!("{key}: negative number {} not allowed", esc(&text)));
     }
     text.parse::<u64>().map_err(|_| {
         crate::model::Error(format!(
-            "{key}: {} is geen geheel getal binnen bereik (u64)",
+            "{key}: {} is not an integer in range (u64)",
             esc(&text)
         ))
     })
@@ -98,7 +92,7 @@ fn uint_value(v: &Value, key: &str) -> Result<u64> {
 fn uint(o: &Obj, key: &str) -> Result<u64> {
     match get(o, key) {
         Some(v) => uint_value(v, key),
-        None => err(format!("{key}: ontbreekt")),
+        None => err(format!("{key}: missing")),
     }
 }
 
@@ -110,18 +104,18 @@ fn opt_str<'a>(o: &'a Obj, key: &str) -> Result<Option<&'a str>> {
     match get(o, key) {
         None => Ok(None),
         Some(Value::String(s)) => Ok(Some(s)),
-        Some(_) => err(format!("{key}: verwacht een string")),
+        Some(_) => err(format!("{key}: expected a string")),
     }
 }
 
 fn req_str<'a>(o: &'a Obj, key: &str) -> Result<&'a str> {
-    opt_str(o, key)?.map_or_else(|| err(format!("{key}: ontbreekt")), Ok)
+    opt_str(o, key)?.map_or_else(|| err(format!("{key}: missing")), Ok)
 }
 
 fn model_name(s: Option<&str>) -> Result<String> {
     match s {
         None => Ok(UNKNOWN.to_string()),
-        Some(m) if m.trim().is_empty() => err("model: leeg"),
+        Some(m) if m.trim().is_empty() => err("model: empty"),
         Some(m) => Ok(m.to_string()),
     }
 }
@@ -148,13 +142,13 @@ const NORMALISED_KEYS: [&str; 10] = [
 fn parse_normalised(v: &Value) -> Result<Record> {
     let o = as_obj(v, "record")?;
     if let Some(k) = o.keys().find(|k| !NORMALISED_KEYS.contains(&k.as_str())) {
-        return err(format!("onbekend veld {:?}", esc(k)));
+        return err(format!("unknown field {:?}", esc(k)));
     }
     let provider = match req_str(o, "provider")? {
         "anthropic" => Provider::Anthropic,
         "openai" => Provider::Openai,
         "other" => Provider::Other,
-        p => return err(format!("provider: onbekende waarde {:?}", esc(p))),
+        p => return err(format!("provider: unknown value {:?}", esc(p))),
     };
     let tier = match opt_str(o, "service_tier")? {
         None | Some("standard") => Tier::Standard,
@@ -162,12 +156,12 @@ fn parse_normalised(v: &Value) -> Result<Record> {
         Some("priority") => Tier::Priority,
         Some("flex") => Tier::Flex,
         Some("other") => Tier::Other,
-        Some(t) => return err(format!("service_tier: onbekende waarde {:?}", esc(t))),
+        Some(t) => return err(format!("service_tier: unknown value {:?}", esc(t))),
     };
     let cost_usd = match get(o, "cost_usd") {
         None => None,
         Some(Value::String(s)) => Some(Money::parse(s, 0)?),
-        Some(_) => return err("cost_usd: verwacht een decimale string, geen getal"),
+        Some(_) => return err("cost_usd: expected a decimal string, not a number"),
     };
     let model = req_str(o, "model")?;
     Ok(Record {
@@ -190,11 +184,11 @@ fn parse_normalised(v: &Value) -> Result<Record> {
 
 fn parse_api(doc: &Obj, seen: &mut HashSet<String>, out: &mut Parsed) -> Result<()> {
     let Some(Value::Array(buckets)) = doc.get("data") else {
-        return err("data: verwacht een lijst met buckets");
+        return err("data: expected a list of buckets");
     };
     if doc.get("has_more").and_then(Value::as_bool) == Some(true) {
         out.warnings.push(
-            "has_more=true: de respons is niet compleet (volgende pagina ontbreekt); totalen zijn onvolledig"
+            "has_more=true: the response is not complete (next page missing); totals are incomplete"
                 .to_string(),
         );
     }
@@ -205,7 +199,7 @@ fn parse_api(doc: &Obj, seen: &mut HashSet<String>, out: &mut Parsed) -> Result<
         let b = as_obj(b, "bucket").map_err(ctx)?;
         let (day, provider) = bucket_day(b).map_err(ctx)?;
         let Some(Value::Array(results)) = b.get("results") else {
-            return err(format!("bucket {}: results: verwacht een lijst", i + 1));
+            return err(format!("bucket {}: results: expected a list", i + 1));
         };
         let start = b
             .get("starting_at")
@@ -232,12 +226,12 @@ fn parse_api(doc: &Obj, seen: &mut HashSet<String>, out: &mut Parsed) -> Result<
     }
     if duplicates > 0 {
         out.warnings.push(format!(
-            "{duplicates} dubbel(e) resultaat/resultaten in dezelfde bucket overgeslagen (niet dubbel geteld)"
+            "{duplicates} duplicate result(s) in the same bucket skipped (not counted twice)"
         ));
     }
     if skipped > 0 {
         out.warnings.push(format!(
-            "{skipped} kostenregel(s) overgeslagen: alleen cost_type=tokens valt in v0.1"
+            "{skipped} cost line(s) skipped: only cost_type=tokens is covered in v0.1"
         ));
     }
     Ok(())
@@ -249,7 +243,7 @@ fn bucket_day(b: &Obj) -> Result<(Day, Provider)> {
         let utc = s.ends_with('Z') || s.ends_with("+00:00");
         if s.len() < 20 || s.as_bytes().get(10) != Some(&b'T') || !s.is_char_boundary(10) || !utc {
             return err(format!(
-                "starting_at {:?}: verwacht RFC 3339 in UTC (Z); andere tijdzones worden niet geraden",
+                "starting_at {:?}: expected RFC 3339 in UTC (Z); other time zones are not guessed",
                 esc(s)
             ));
         }
@@ -259,25 +253,25 @@ fn bucket_day(b: &Obj) -> Result<(Day, Provider)> {
         Some(Value::Number(n)) => {
             let secs = n.to_string().parse::<i64>().map_err(|_| {
                 crate::model::Error(format!(
-                    "start_time {}: verwacht Unix-seconden (geheel getal)",
+                    "start_time {}: expected Unix seconds (integer)",
                     esc(&n.to_string())
                 ))
             })?;
             Ok((Day::from_unix(secs)?, Provider::Openai))
         }
-        Some(_) => err("start_time: verwacht Unix-seconden (geheel getal)"),
-        None => err("bucket heeft geen starting_at (Anthropic) of start_time (OpenAI)"),
+        Some(_) => err("start_time: expected Unix seconds (integer)"),
+        None => err("bucket has no starting_at (Anthropic) or start_time (OpenAI)"),
     }
 }
 
 fn anthropic_usage(day: Day, r: &Obj) -> Result<Record> {
     let Some(cc) = get(r, "cache_creation") else {
-        return err("cache_creation: ontbreekt");
+        return err("cache_creation: missing");
     };
     let cc = as_obj(cc, "cache_creation")?;
     let write = uint(cc, "ephemeral_5m_input_tokens")?
         .checked_add(uint(cc, "ephemeral_1h_input_tokens")?)
-        .map_or_else(|| err("cache_creation: som past niet in u64"), Ok)?;
+        .map_or_else(|| err("cache_creation: sum does not fit in u64"), Ok)?;
     Ok(Record {
         day,
         provider: Provider::Anthropic,
@@ -298,7 +292,7 @@ fn anthropic_cost(day: Day, r: &Obj) -> Result<Option<Record>> {
         return Ok(None);
     }
     if req_str(r, "currency")? != "USD" {
-        return err("currency: alleen USD wordt ondersteund");
+        return err("currency: only USD is supported");
     }
     let cost = Money::parse(req_str(r, "amount")?, 2)?;
     Ok(Some(cost_record(
@@ -344,7 +338,7 @@ fn openai_usage(day: Day, r: &Obj) -> Result<Record> {
         .map_or_else(
             || {
                 err(format!(
-                    "input_tokens: {input} is kleiner dan input_cached_tokens {cached} + input_cache_write_tokens {written}; de bron zegt dat input_tokens die bevat"
+                    "input_tokens: {input} is smaller than input_cached_tokens {cached} + input_cache_write_tokens {written}; the source says input_tokens includes them"
                 ))
             },
             Ok,
@@ -372,14 +366,13 @@ fn openai_usage(day: Day, r: &Obj) -> Result<Record> {
 fn openai_cost(day: Day, r: &Obj, warnings: &mut Vec<String>) -> Result<Option<Record>> {
     let amount = as_obj(r.get("amount").unwrap_or(&Value::Null), "amount")?;
     if !req_str(amount, "currency")?.eq_ignore_ascii_case("usd") {
-        return err("amount.currency: alleen usd wordt ondersteund");
+        return err("amount.currency: only usd is supported");
     }
     let Some(Value::Number(n)) = get(amount, "value") else {
-        return err("amount.value: verwacht een getal");
+        return err("amount.value: expected a number");
     };
     let cost = Money::parse(&n.to_string(), 0)?;
-    let note =
-        "OpenAI amount.value: eenheid niet bevestigd in de bron, aangenomen dollars".to_string();
+    let note = "OpenAI amount.value: unit not confirmed by the source, assumed dollars".to_string();
     if !warnings.contains(&note) {
         warnings.push(note);
     }

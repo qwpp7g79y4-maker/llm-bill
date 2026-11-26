@@ -24,7 +24,7 @@ type Key = (Day, Provider, String, Tier);
 
 fn add(a: u64, b: u64, what: &str) -> Result<u64> {
     a.checked_add(b)
-        .map_or_else(|| err(format!("overflow bij optellen van {what}")), Ok)
+        .map_or_else(|| err(format!("overflow while adding {what}")), Ok)
 }
 
 pub fn aggregate(records: &[Record]) -> Result<Vec<Row>> {
@@ -74,7 +74,7 @@ pub fn aggregate(records: &[Record]) -> Result<Vec<Row>> {
                 row.cost_usd
                     .unwrap_or(Money::ZERO)
                     .checked_add(c)
-                    .map_or_else(|| err("overflow bij optellen van bedragen"), Ok)?,
+                    .map_or_else(|| err("overflow while adding amounts"), Ok)?,
             );
         }
     }
@@ -132,7 +132,7 @@ pub fn totals(rows: &[Row]) -> Result<Totals> {
                 t.cost_usd
                     .unwrap_or(Money::ZERO)
                     .checked_add(c)
-                    .map_or_else(|| err("overflow bij optellen van bedragen"), Ok)?,
+                    .map_or_else(|| err("overflow while adding amounts"), Ok)?,
             );
         }
         t.cost_complete &= r.cost_known;
@@ -196,7 +196,7 @@ fn cost_text(c: Option<Money>, known: bool) -> String {
         (Some(m), true) => format!("${m}"),
         (Some(m), false) => format!("${m}+"),
         (None, true) => "-".to_string(),
-        (None, false) => "onbekend".to_string(),
+        (None, false) => "unknown".to_string(),
     }
 }
 
@@ -227,7 +227,7 @@ pub fn render_text(rows: &[Row], t: &Totals, warnings: &[String]) -> String {
         ]);
     }
     table.push(vec![
-        "totaal".to_string(),
+        "total".to_string(),
         String::new(),
         String::new(),
         String::new(),
@@ -248,7 +248,7 @@ pub fn render_text(rows: &[Row], t: &Totals, warnings: &[String]) -> String {
         .collect();
     let mut out = String::new();
     for w in warnings {
-        out.push_str(&format!("waarschuwing: {}\n", esc(w)));
+        out.push_str(&format!("warning: {}\n", esc(w)));
     }
     for row in &table {
         let cells: Vec<String> = row

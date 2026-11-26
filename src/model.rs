@@ -76,11 +76,11 @@ impl Day {
                 .enumerate()
                 .all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit());
         if !ok {
-            return err(format!("ongeldige dag {:?}, verwacht YYYY-MM-DD", esc(s)));
+            return err(format!("invalid day {:?}, expected YYYY-MM-DD", esc(s)));
         }
         let n = |r: std::ops::Range<usize>| s[r].parse::<u16>().unwrap_or(0);
         Day::new(n(0..4), n(5..7) as u8, n(8..10) as u8)
-            .map_or_else(|| err(format!("ongeldige dag {:?}", esc(s))), Ok)
+            .map_or_else(|| err(format!("invalid day {:?}", esc(s))), Ok)
     }
 
     /// UTC day of a Unix timestamp in seconds.
@@ -97,7 +97,7 @@ impl Day {
         u16::try_from(y)
             .ok()
             .and_then(|y| Day::new(y, m as u8, d as u8))
-            .map_or_else(|| err(format!("tijdstip {secs} buiten bereik")), Ok)
+            .map_or_else(|| err(format!("timestamp {secs} out of range")), Ok)
     }
 }
 
@@ -148,13 +148,13 @@ impl fmt::Display for Money {
 
 fn invalid_money(s: &str) -> Error {
     Error(format!(
-        "ongeldig bedrag {:?}: verwacht niet-negatief decimaal getal",
+        "invalid amount {:?}: expected a non-negative decimal number",
         esc(s)
     ))
 }
 
 fn too_precise(s: &str) -> Error {
-    Error(format!("bedrag {:?} te groot of te nauwkeurig", esc(s)))
+    Error(format!("amount {:?} too large or too precise", esc(s)))
 }
 
 /// Mantissa and base-10 exponent. No exponent is `0`.
@@ -235,7 +235,7 @@ fn warn_rounded(s: &str) {
     ROUNDED_WARNING.with(|w| {
         let mut slot = w.borrow_mut();
         if slot.is_none() {
-            *slot = Some(format!("bedrag {:?} afgerond op 12 decimalen", esc(s)));
+            *slot = Some(format!("amount {:?} rounded to 12 decimal places", esc(s)));
         }
     });
 }
@@ -336,7 +336,7 @@ impl Tier {
             Tier::Priority => "priority",
             Tier::Flex => "flex",
             Tier::Other => "other",
-            Tier::Unknown => "onbekend",
+            Tier::Unknown => "unknown",
         }
     }
 

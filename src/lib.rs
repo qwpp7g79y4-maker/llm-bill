@@ -22,7 +22,7 @@ pub fn run(texts: &[String], opts: &Options) -> Result<(String, Vec<String>)> {
     for (i, t) in texts.iter().enumerate() {
         if let Some(j) = texts[..i].iter().position(|u| u == t) {
             warnings.push(format!(
-                "invoer {} is identiek aan invoer {}: overgeslagen (niet dubbel geteld)",
+                "input {} is identical to input {}: skipped (not counted twice)",
                 i + 1,
                 j + 1
             ));
@@ -39,7 +39,7 @@ pub fn run(texts: &[String], opts: &Options) -> Result<(String, Vec<String>)> {
     if opts.require_cost {
         if let Some(r) = rows.iter().find(|r| !r.cost_known) {
             return err(format!(
-                "geen prijs of kosten bekend voor model {:?} op {} (--require-cost)",
+                "no price or cost known for model {:?} on {} (--require-cost)",
                 esc(&r.model),
                 r.day
             ));

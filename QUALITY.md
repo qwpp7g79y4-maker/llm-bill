@@ -1,6 +1,14 @@
 # Quality
 
-pep: 10
+pep: 6.5
+
+## Open points that count
+
+| Point | Class | Deduction |
+|---|---|---|
+| Test fixture and model names are still Dutch (for example f04-bedrag and voorbeeld-onbekend-model), and tests/fixtures/README.md is in Dutch | S- | 3.5 |
+
+Score: 10 − 3.5 = 6.5. Other open points in this file have no class and do not count. They are not repaired yet.
 
 Command: `cargo test --locked --no-fail-fast`
 Date: 2026-11-23

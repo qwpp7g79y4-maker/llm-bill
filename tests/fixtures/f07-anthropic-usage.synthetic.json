@@ -1,6 +1,6 @@
-{"_synthetic":"SYNTHETISCH VOORBEELD, geen echte data",
+{"_synthetic":"SYNTHETIC EXAMPLE, no real data",
  "data":[{"starting_at":"2026-10-01T00:00:00Z","ending_at":"2026-10-02T00:00:00Z",
- "results":[{"model":"voorbeeld-model-a","service_tier":"standard",
+ "results":[{"model":"example-model-a","service_tier":"standard",
   "uncached_input_tokens":1500,"cache_read_input_tokens":200,
   "cache_creation":{"ephemeral_5m_input_tokens":30,"ephemeral_1h_input_tokens":12},
   "output_tokens":500,"server_tool_use":{"web_search_requests":0},

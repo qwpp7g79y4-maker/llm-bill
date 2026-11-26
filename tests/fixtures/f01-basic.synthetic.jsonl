@@ -1,0 +1,1 @@
+{"day":"2026-10-01","provider":"anthropic","model":"example-model-a","service_tier":"standard","input_tokens":1500,"cache_read_tokens":200,"cache_write_tokens":0,"output_tokens":500,"requests":3,"cost_usd":null}

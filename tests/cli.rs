@@ -49,10 +49,10 @@ fn row(doc: &serde_json::Value, i: usize, key: &str) -> String {
 }
 
 #[test]
-fn f01_basis() {
-    let d = json_of("f01-basis.synthetic.jsonl");
+fn f01_basic() {
+    let d = json_of("f01-basic.synthetic.jsonl");
     assert_eq!(d["rows"].as_array().unwrap().len(), 1);
-    assert_eq!(row(&d, 0, "model"), "voorbeeld-model-a");
+    assert_eq!(row(&d, 0, "model"), "example-model-a");
     assert_eq!(row(&d, 0, "input_tokens"), "1500");
     assert_eq!(row(&d, 0, "cache_read_tokens"), "200");
     assert_eq!(row(&d, 0, "output_tokens"), "500");
@@ -78,7 +78,7 @@ fn f03_cache_heavy() {
 
 #[test]
 fn f04_source_gives_amount() {
-    let d = json_of("f04-bedrag.synthetic.jsonl");
+    let d = json_of("f04-amount.synthetic.jsonl");
     assert_eq!(row(&d, 0, "cost_usd"), "1.23");
     assert_eq!(d["rows"][0]["cost_known"], true);
     assert_eq!(d["totals"]["cost_usd"], "1.23");
@@ -87,7 +87,7 @@ fn f04_source_gives_amount() {
 
 #[test]
 fn f05_zero_and_defaults() {
-    let d = json_of("f05-nul.synthetic.jsonl");
+    let d = json_of("f05-zero.synthetic.jsonl");
     assert_eq!(row(&d, 0, "service_tier"), "standard");
     assert_eq!(row(&d, 0, "cache_read_tokens"), "0");
     assert_eq!(row(&d, 0, "cache_write_tokens"), "0");
@@ -99,9 +99,9 @@ fn f05_zero_and_defaults() {
 #[test]
 fn f06_error_cases_exit_2() {
     for (name, needle) in [
-        ("f06a-negatief.synthetic.jsonl", "negative"),
-        ("f06b-geen-model.synthetic.jsonl", "model"),
-        ("f06c-dag.synthetic.jsonl", "invalid day"),
+        ("f06a-negative.synthetic.jsonl", "negative"),
+        ("f06b-no-model.synthetic.jsonl", "model"),
+        ("f06c-day.synthetic.jsonl", "invalid day"),
         ("f06d-float.synthetic.jsonl", "cost_usd"),
     ] {
         let o = run_with(&[&fixture(name)], None);
@@ -114,13 +114,13 @@ fn f06_error_cases_exit_2() {
 
 #[test]
 fn f06e_unknown_model_price() {
-    let name = fixture("f06e-onbekend-model.synthetic.jsonl");
+    let name = fixture("f06e-unknown-model.synthetic.jsonl");
     let ok = run_with(&[&name], None);
     assert_eq!(ok.code, 0);
     assert!(ok.stdout.contains("unknown"));
     let strict = run_with(&["--require-cost", &name], None);
     assert_eq!(strict.code, 2);
-    assert!(strict.stderr.contains("voorbeeld-onbekend-model"));
+    assert!(strict.stderr.contains("example-unknown-model"));
 }
 
 #[test]
@@ -181,7 +181,7 @@ fn f11_openai_costs_with_assumption_warning() {
 #[test]
 fn combined_files_sum_per_day_model() {
     // Two different inputs for the same (day, provider, model, tier) are summed.
-    let a = fixture("f01-basis.synthetic.jsonl");
+    let a = fixture("f01-basic.synthetic.jsonl");
     let second = std::fs::read_to_string(&a)
         .unwrap()
         .replace("\"input_tokens\":1500", "\"input_tokens\":100");
@@ -196,7 +196,7 @@ fn combined_files_sum_per_day_model() {
 
 #[test]
 fn text_summary_has_columns_and_total() {
-    let o = run_with(&[&fixture("f01-basis.synthetic.jsonl")], None);
+    let o = run_with(&[&fixture("f01-basic.synthetic.jsonl")], None);
     assert_eq!(o.code, 0);
     let first = o.stdout.lines().next().unwrap();
     for col in [
@@ -405,7 +405,7 @@ fn b3_cost_only_record_still_covers_usage_only_record() {
 
 #[test]
 fn b4_same_file_twice_is_counted_once_with_warning() {
-    let a = fixture("f01-basis.synthetic.jsonl");
+    let a = fixture("f01-basic.synthetic.jsonl");
     let o = run_with(&["--json", &a, &a], None);
     assert_eq!(o.code, 0, "{}", o.stderr);
     let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
@@ -472,7 +472,7 @@ fn b5_stdout_write_error_is_nonzero_without_panic() {
     if !std::path::Path::new("/dev/full").exists() {
         return;
     }
-    let f = fixture("f01-basis.synthetic.jsonl");
+    let f = fixture("f01-basic.synthetic.jsonl");
     for args in [&[f.as_str()][..], &["--json", f.as_str()][..]] {
         let o = run_full(args, true, false);
         assert_eq!(o.code, 2, "{args:?}: {}", o.stderr);
@@ -568,8 +568,8 @@ fn n1_openai_batch_true_maps_to_batch_tier() {
 #[test]
 fn g1_float_artifact_and_exponent_round_to_12() {
     let doc = r#"{"data":[{"start_time":1790812800,"results":[
-        {"amount":{"value":0.30000000000000004,"currency":"usd"},"line_item":"voorbeeld-a"},
-        {"amount":{"value":1.4e-6,"currency":"usd"},"line_item":"voorbeeld-b"}
+        {"amount":{"value":0.30000000000000004,"currency":"usd"},"line_item":"example-a"},
+        {"amount":{"value":1.4e-6,"currency":"usd"},"line_item":"example-b"}
     ]}]}"#;
     let o = run_with(&["--json", "-"], Some(doc.as_bytes()));
     assert_eq!(o.code, 0, "stdout={}\nstderr={}", o.stdout, o.stderr);
@@ -599,8 +599,8 @@ fn g1_float_artifact_and_exponent_round_to_12() {
 #[test]
 fn g2a_same_float_artifact_warns_once_in_json() {
     let doc = r#"{"data":[{"start_time":1790812800,"results":[
-        {"amount":{"value":0.30000000000000004,"currency":"usd"},"line_item":"voorbeeld-a"},
-        {"amount":{"value":0.30000000000000004,"currency":"usd"},"line_item":"voorbeeld-b"}
+        {"amount":{"value":0.30000000000000004,"currency":"usd"},"line_item":"example-a"},
+        {"amount":{"value":0.30000000000000004,"currency":"usd"},"line_item":"example-b"}
     ]}]}"#;
     let o = run_with(&["--json", "-"], Some(doc.as_bytes()));
     assert_eq!(o.code, 0, "stdout={}\nstderr={}", o.stdout, o.stderr);

@@ -47,27 +47,27 @@ Installeer met `cargo install --locked --path .` vanuit een clone van deze repos
 1. Clone de repository: `git clone https://github.com/qwpp7g79y4-maker/llm-bill` en `cd llm-bill`.
 2. Installeer: `cargo install --locked --path .`
 3. Draai het kleine voorbeeld: `llm-bill examples/one-row.json` (exit 0).
-4. Print het tekstrapport van een synthetische fixture: `llm-bill tests/fixtures/f01-basis.synthetic.jsonl` (de uitvoer staat onder Voorbeeld).
-5. Dezelfde samenvatting als JSON: `llm-bill --json tests/fixtures/f01-basis.synthetic.jsonl`.
+4. Print het tekstrapport van een synthetische fixture: `llm-bill tests/fixtures/f01-basic.synthetic.jsonl` (de uitvoer staat onder Voorbeeld).
+5. Dezelfde samenvatting als JSON: `llm-bill --json tests/fixtures/f01-basic.synthetic.jsonl`.
 
 ## Voorbeeld
 
-Tekstrapport van `tests/fixtures/f01-basis.synthetic.jsonl` (exit 0, stderr leeg):
+Tekstrapport van `tests/fixtures/f01-basic.synthetic.jsonl` (exit 0, stderr leeg):
 
 ```
-$ llm-bill tests/fixtures/f01-basis.synthetic.jsonl
-day         provider   model              tier      input  cache_read  cache_write  output     cost
-2026-10-01  anthropic  voorbeeld-model-a  standard   1500         200            0     500  unknown
-total                                                1500         200            0     500  unknown
+$ llm-bill tests/fixtures/f01-basic.synthetic.jsonl
+day         provider   model            tier      input  cache_read  cache_write  output     cost
+2026-10-01  anthropic  example-model-a  standard   1500         200            0     500  unknown
+total                                              1500         200            0     500  unknown
 ```
 
-Dezelfde vorm met een bedrag dat de bron wél geeft (`tests/fixtures/f04-bedrag.synthetic.jsonl`):
+Dezelfde vorm met een bedrag dat de bron wél geeft (`tests/fixtures/f04-amount.synthetic.jsonl`):
 
 ```
-$ llm-bill tests/fixtures/f04-bedrag.synthetic.jsonl
-day         provider   model              tier      input  cache_read  cache_write  output   cost
-2026-10-02  anthropic  voorbeeld-model-a  standard      0           0            0       0  $1.23
-total                                                   0           0            0       0  $1.23
+$ llm-bill tests/fixtures/f04-amount.synthetic.jsonl
+day         provider   model            tier      input  cache_read  cache_write  output   cost
+2026-10-02  anthropic  example-model-a  standard      0           0            0       0  $1.23
+total                                                 0           0            0       0  $1.23
 ```
 
 Kolommen: day, provider, model, tier, input, cache_read, cache_write, output
@@ -78,7 +78,7 @@ Meerdere bestanden worden opgeteld.
 De kostencel is `$1.23` bij een volledig bedrag, `$1.23+` als maar een deel
 van de tokenrecords in die rij een bedrag heeft, `unknown` bij tokens zonder
 bekend bedrag, en `-` bij geen tokens en geen bedrag (er mist niets;
-`f05-nul.synthetic.jsonl` print `-`).
+`f05-zero.synthetic.jsonl` print `-`).
 
 `--json` print een pretty-printed document met `version` `"0.1"`, `warnings`,
 `rows` en `totals`. Rijsleutels, alfabetisch, zijn `cache_read_tokens`,
@@ -92,7 +92,7 @@ stdout, vóór de tabel. Bij `--json` staan die waarschuwingen in de array
 Foute aanroep, allemaal exit 2, stdout leeg, stderr zonder paniek:
 
 ```
-$ llm-bill --nope tests/fixtures/f01-basis.synthetic.jsonl
+$ llm-bill --nope tests/fixtures/f01-basic.synthetic.jsonl
 error: unexpected argument '--nope' found
 
   tip: to pass '--nope' as a value, use '-- --nope'

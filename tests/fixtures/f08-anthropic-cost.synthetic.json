@@ -1,6 +1,6 @@
-{"_synthetic":"SYNTHETISCH VOORBEELD, geen echte data",
+{"_synthetic":"SYNTHETIC EXAMPLE, no real data",
  "data":[{"starting_at":"2026-10-01T00:00:00Z","ending_at":"2026-10-02T00:00:00Z",
- "results":[{"amount":"123.45","currency":"USD","cost_type":"tokens","description":"voorbeeld",
-  "model":"voorbeeld-model-a","token_type":"output_tokens","service_tier":"standard",
+ "results":[{"amount":"123.45","currency":"USD","cost_type":"tokens","description":"example",
+  "model":"example-model-a","token_type":"output_tokens","service_tier":"standard",
   "workspace_id":null}]}],
  "has_more":false,"next_page":null}

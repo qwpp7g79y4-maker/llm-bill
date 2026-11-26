@@ -1,5 +1,7 @@
 # llm-bill
 
+[![crates.io](https://img.shields.io/crates/v/llm-bill.svg)](https://crates.io/crates/llm-bill) [![downloads](https://img.shields.io/crates/d/llm-bill.svg)](https://crates.io/crates/llm-bill) [![CI](https://github.com/qwpp7g79y4-maker/llm-bill/actions/workflows/ci.yml/badge.svg)](https://github.com/qwpp7g79y4-maker/llm-bill/actions/workflows/ci.yml) [![PEPAI checked](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Fllm-bill%2Fmain%2F.github%2Fbadge.json)](QUALITY.md) [![MSRV 1.85](https://img.shields.io/badge/MSRV-1.85-blue.svg)](https://github.com/qwpp7g79y4-maker/llm-bill/blob/main/Cargo.toml) [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/qwpp7g79y4-maker/llm-bill#license)
+
 Vat LLM-tokengebruik en -kosten samen per dag, aanbieder, model en servicetier,
 uit opgeslagen API-antwoorden. Offline: het leest bestanden, doet geen
 netwerkaanroepen en heeft geen API-sleutel nodig. Versie 0.1.0 (unreleased).
@@ -35,6 +37,18 @@ of geen bestanden) of een mislukte schrijfactie naar stdout. Invoer- en
 schrijffouten gaan naar stderr en beginnen met `fout:`. Gebruiksfouten komen
 van de argumentparser en beginnen met `error:`. Een falende stderr wordt
 genegeerd, dus geen paniek en geen exit 101 bij een volle of gesloten stdout of stderr.
+
+## Installatie
+
+Installeer met `cargo install --locked --path .` vanuit een clone van deze repository (Rust 1.85 of nieuwer).
+
+## Aan de slag in 5 minuten
+
+1. Clone de repository: `git clone https://github.com/qwpp7g79y4-maker/llm-bill` en `cd llm-bill`.
+2. Installeer: `cargo install --locked --path .`
+3. Draai het kleine voorbeeld: `llm-bill examples/one-row.json` (exit 0).
+4. Print het tekstrapport van een synthetische fixture: `llm-bill tests/fixtures/f01-basis.synthetic.jsonl` (de uitvoer staat onder Voorbeeld).
+5. Dezelfde samenvatting als JSON: `llm-bill --json tests/fixtures/f01-basis.synthetic.jsonl`.
 
 ## Voorbeeld
 
@@ -184,6 +198,10 @@ Regels:
 - Ophalen bij de API's zelf (vraagt een admin-sleutel). Sla het antwoord op in een bestand.
 
 Fixtures in `tests/fixtures/` zijn synthetisch. Geen echte klantdata.
+
+## Onderhoud
+
+Na een release staat de tool in sluimermodus (dormant): een nieuwe versie komt er alleen bij een gemelde bug, een verzoek of een beveiligingsprobleem. Beveiliging gaat altijd voor.
 
 ## Licentie
 

@@ -1,5 +1,7 @@
 # llm-bill
 
+[![crates.io](https://img.shields.io/crates/v/llm-bill.svg)](https://crates.io/crates/llm-bill) [![downloads](https://img.shields.io/crates/d/llm-bill.svg)](https://crates.io/crates/llm-bill) [![CI](https://github.com/qwpp7g79y4-maker/llm-bill/actions/workflows/ci.yml/badge.svg)](https://github.com/qwpp7g79y4-maker/llm-bill/actions/workflows/ci.yml) [![PEPAI checked](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Fllm-bill%2Fmain%2F.github%2Fbadge.json)](QUALITY.md) [![MSRV 1.85](https://img.shields.io/badge/MSRV-1.85-blue.svg)](https://github.com/qwpp7g79y4-maker/llm-bill/blob/main/Cargo.toml) [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/qwpp7g79y4-maker/llm-bill#license)
+
 Summarise LLM token usage and cost per day, provider, model and service tier from
 saved API responses. Offline: it reads files, makes no network calls and needs no
 API key. Version 0.1.0 (unreleased).
@@ -37,6 +39,18 @@ or no files), or a failed write to stdout. Input and write errors go to stderr
 and start with `fout:`. Usage errors come from the argument parser and start
 with `error:`. A failing stderr is ignored, so there is no panic and no exit
 101 when stdout or stderr is full or closed.
+
+## Installation
+
+Install with `cargo install --locked --path .` from a clone of this repository (Rust 1.85 or newer).
+
+## Quickstart in 5 minutes
+
+1. Clone the repository: `git clone https://github.com/qwpp7g79y4-maker/llm-bill` and `cd llm-bill`.
+2. Install: `cargo install --locked --path .`
+3. Run the small example: `llm-bill examples/one-row.json` (exit 0).
+4. Print the text report of a synthetic fixture: `llm-bill tests/fixtures/f01-basis.synthetic.jsonl` (the output is shown under Example).
+5. Get the same summary as JSON: `llm-bill --json tests/fixtures/f01-basis.synthetic.jsonl`.
 
 ## Example
 
@@ -187,6 +201,10 @@ Rules:
 - Fetching from the provider APIs (needs an admin key). Save the response to a file.
 
 Fixtures in `tests/fixtures/` are synthetic. No real customer data.
+
+## Maintenance
+
+After a release the tool is dormant: a new version appears only for a reported bug, a request, or a security problem. Security always comes first.
 
 ## License
 

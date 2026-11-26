@@ -34,7 +34,7 @@ Elk bestand moet geldige UTF-8 zijn en hoogstens 268435456 bytes (256 MiB).
 
 Exitcode 0 is gelukt. Exitcode 2 is foute invoer, fout gebruik (onbekende optie,
 of geen bestanden) of een mislukte schrijfactie naar stdout. Invoer- en
-schrijffouten gaan naar stderr en beginnen met `fout:`. Gebruiksfouten komen
+schrijffouten gaan naar stderr en beginnen met `error:`. Gebruiksfouten komen
 van de argumentparser en beginnen met `error:`. Een falende stderr wordt
 genegeerd, dus geen paniek en geen exit 101 bij een volle of gesloten stdout of stderr.
 
@@ -56,9 +56,9 @@ Tekstrapport van `tests/fixtures/f01-basis.synthetic.jsonl` (exit 0, stderr leeg
 
 ```
 $ llm-bill tests/fixtures/f01-basis.synthetic.jsonl
-day         provider   model              tier      input  cache_read  cache_write  output      cost
-2026-10-01  anthropic  voorbeeld-model-a  standard   1500         200            0     500  onbekend
-totaal                                               1500         200            0     500  onbekend
+day         provider   model              tier      input  cache_read  cache_write  output     cost
+2026-10-01  anthropic  voorbeeld-model-a  standard   1500         200            0     500  unknown
+total                                                1500         200            0     500  unknown
 ```
 
 Dezelfde vorm met een bedrag dat de bron wél geeft (`tests/fixtures/f04-bedrag.synthetic.jsonl`):
@@ -67,16 +67,16 @@ Dezelfde vorm met een bedrag dat de bron wél geeft (`tests/fixtures/f04-bedrag.
 $ llm-bill tests/fixtures/f04-bedrag.synthetic.jsonl
 day         provider   model              tier      input  cache_read  cache_write  output   cost
 2026-10-02  anthropic  voorbeeld-model-a  standard      0           0            0       0  $1.23
-totaal                                                  0           0            0       0  $1.23
+total                                                   0           0            0       0  $1.23
 ```
 
 Kolommen: day, provider, model, tier, input, cache_read, cache_write, output
 en cost. Tekstkolommen links uitgelijnd, getalkolommen rechts. De laatste rij
-is `totaal`. `requests` staat niet in de teksttabel; alleen in `--json`.
+is `total`. `requests` staat niet in de teksttabel; alleen in `--json`.
 Meerdere bestanden worden opgeteld.
 
 De kostencel is `$1.23` bij een volledig bedrag, `$1.23+` als maar een deel
-van de tokenrecords in die rij een bedrag heeft, `onbekend` bij tokens zonder
+van de tokenrecords in die rij een bedrag heeft, `unknown` bij tokens zonder
 bekend bedrag, en `-` bij geen tokens en geen bedrag (er mist niets;
 `f05-nul.synthetic.jsonl` print `-`).
 
@@ -85,7 +85,7 @@ bekend bedrag, en `-` bij geen tokens en geen bedrag (er mist niets;
 `cache_write_tokens`, `cost_known`, `cost_usd`, `day`, `input_tokens`, `model`,
 `output_tokens`, `provider`, `requests`, `service_tier`. `cost_usd` is `null`
 of een decimale string. Het document eindigt op `}` en zet daar geen newline
-achter. Waarschuwingen in het tekstrapport zijn regels `waarschuwing: ...` op
+achter. Waarschuwingen in het tekstrapport zijn regels `warning: ...` op
 stdout, vóór de tabel. Bij `--json` staan die waarschuwingen in de array
 `warnings` en ook op stderr.
 
@@ -104,12 +104,12 @@ For more information, try '--help'.
 
 ```
 $ llm-bill /nonexistent/llm-bill-test.jsonl
-fout: /nonexistent/llm-bill-test.jsonl: No such file or directory (os error 2)
+error: /nonexistent/llm-bill-test.jsonl: No such file or directory (os error 2)
 ```
 
 ```
 $ printf '%s' '{"day":' | llm-bill -
-fout: regel 1: ongeldige JSON: EOF while parsing a value at line 1 column 7
+error: line 1: invalid JSON: EOF while parsing a value at line 1 column 7
 ```
 
 Stuurtekens (C0, DEL, C1 zoals U+0085) en bidi-tekens in data worden geëscaped als
@@ -157,7 +157,7 @@ Het formaat wordt automatisch herkend.
 Regels:
 
 - Een veld dat de bron weglaat (niet op die dimensie
-  gegroepeerd) staat als `onbekend`. Tijdstippen die niet in UTC zijn worden afgewezen.
+  gegroepeerd) staat als `unknown`. Tijdstippen die niet in UTC zijn worden afgewezen.
   OpenAI `amount.value` wordt als dollars gelezen. Die eenheid is een aanname, en
   een waarschuwing meldt dat.
 - OpenAI `input_tokens` bevat de gecachete en cache-write tokens (de bron zegt
@@ -173,7 +173,7 @@ Regels:
 - `has_more=true` in een antwoord geeft een waarschuwing: het bestand is één
   pagina van meer en de totalen zijn onvolledig.
 - Kosten staan er alleen als de bron ze geeft. Zonder bedrag zegt de kostenkolom
-  `onbekend`; `--require-cost` maakt daar exitcode 2 van. Er is nog geen prijsbestand.
+  `unknown`; `--require-cost` maakt daar exitcode 2 van. Er is nog geen prijsbestand.
   Een rij waarvan maar een deel van de records met tokens een bedrag heeft, toont `$X+`
   (en `cost_known: false`), ook bij `--require-cost`. Een record met bedrag maar zonder
   tokens (de Anthropic Cost API naast de Usage API) dekt de usage-records van zijn rij.
@@ -181,11 +181,11 @@ Regels:
   `batch: false` of null houdt `service_tier`. De API-waarde `default` is
   `standard`. Een servicetier-string die de API stuurt en die niet `standard`,
   `default`, `batch`, `priority` of `flex` is, wordt `other`. Een tier die de
-  API weglaat wordt `onbekend`. Genormaliseerd JSONL weigert een onbekende
+  API weglaat wordt `unknown`. Genormaliseerd JSONL weigert een onbekende
   `service_tier` of `provider` met exit 2.
 - Meer dan 12 decimalen, of een exponent (`1.4e-6`), wordt afgerond op 12
   decimalen. De run gaat door en bewaart één waarschuwing,
-  `bedrag "…" afgerond op 12 decimalen`. `1.4e-6` verschijnt als `$0.0000014`.
+  `amount "…" rounded to 12 decimal places`. `1.4e-6` verschijnt als `$0.0000014`.
   Dit geldt voor decimale strings en voor OpenAI `amount.value`. Een
   JSON-getal in genormaliseerd `cost_usd` wordt nog steeds afgewezen.
 

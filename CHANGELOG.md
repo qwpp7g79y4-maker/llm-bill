@@ -31,6 +31,7 @@ Dates below are the git author dates on `main`.
 
 ### Changed
 
+- Error messages, warnings and the `total` and `unknown` cells of the report are in English (`error:`, `warning:`). The calculation is unchanged (2026-11-26).
 - OpenAI `input_tokens` is reported as uncached input (minus cached and
   cache-write tokens), because the source says `input_tokens` includes them.
   A result where cached plus cache-write exceeds `input_tokens` is rejected.
@@ -50,7 +51,7 @@ Dates below are the git author dates on `main`.
 - An input identical to an earlier input, and an API result identical to one
   already seen in a bucket with the same start, are skipped with a warning and
   are not counted twice (2026-10-29, B4).
-- A failed write to stdout exits 2 with `fout: schrijven naar stdout mislukt`.
+- A failed write to stdout exits 2 with `error: writing to stdout failed`.
   A failed write to stderr does not panic (2026-10-29, B5).
 - The rounding warning is stored once in the warnings list, including under
   `--json` (2026-10-30, G-2a).

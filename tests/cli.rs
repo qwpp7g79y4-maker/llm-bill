@@ -99,9 +99,9 @@ fn f05_zero_and_defaults() {
 #[test]
 fn f06_error_cases_exit_2() {
     for (name, needle) in [
-        ("f06a-negatief.synthetic.jsonl", "negatief"),
+        ("f06a-negatief.synthetic.jsonl", "negative"),
         ("f06b-geen-model.synthetic.jsonl", "model"),
-        ("f06c-dag.synthetic.jsonl", "ongeldige dag"),
+        ("f06c-dag.synthetic.jsonl", "invalid day"),
         ("f06d-float.synthetic.jsonl", "cost_usd"),
     ] {
         let o = run_with(&[&fixture(name)], None);
@@ -117,7 +117,7 @@ fn f06e_unknown_model_price() {
     let name = fixture("f06e-onbekend-model.synthetic.jsonl");
     let ok = run_with(&[&name], None);
     assert_eq!(ok.code, 0);
-    assert!(ok.stdout.contains("onbekend"));
+    assert!(ok.stdout.contains("unknown"));
     let strict = run_with(&["--require-cost", &name], None);
     assert_eq!(strict.code, 2);
     assert!(strict.stderr.contains("voorbeeld-onbekend-model"));
@@ -163,7 +163,7 @@ fn f10_has_more_warns() {
     let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
     assert!(d["warnings"][0].as_str().unwrap().contains("has_more"));
     let text = run_with(&[&fixture("f10-has-more.synthetic.json")], None);
-    assert!(text.stdout.contains("waarschuwing: has_more"));
+    assert!(text.stdout.contains("warning: has_more"));
 }
 
 #[test]
@@ -173,7 +173,7 @@ fn f11_openai_costs_with_assumption_warning() {
         None,
     );
     assert_eq!(o.code, 0);
-    assert!(o.stderr.contains("niet bevestigd"));
+    assert!(o.stderr.contains("not confirmed"));
     let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
     assert_eq!(d["rows"][0]["cost_usd"], "0.06");
 }
@@ -204,7 +204,7 @@ fn text_summary_has_columns_and_total() {
     ] {
         assert!(first.contains(col), "{col}");
     }
-    assert!(o.stdout.lines().last().unwrap().starts_with("totaal"));
+    assert!(o.stdout.lines().last().unwrap().starts_with("total"));
 }
 
 // ---- error handling ------------------------------------------------------
@@ -219,23 +219,23 @@ fn expect_fail(input: &[u8], needle: &str) {
 
 #[test]
 fn broken_json() {
-    expect_fail(b"{\"day\":\n", "ongeldige JSON");
-    expect_fail(b"not json at all", "ongeldige JSON");
-    expect_fail(b"{\"data\":[{\"starting_at\":", "ongeldige JSON");
+    expect_fail(b"{\"day\":\n", "invalid JSON");
+    expect_fail(b"not json at all", "invalid JSON");
+    expect_fail(b"{\"data\":[{\"starting_at\":", "invalid JSON");
 }
 
 #[test]
 fn empty_input() {
-    expect_fail(b"", "lege invoer");
-    expect_fail(b"  \n\n", "lege invoer");
-    expect_fail(b"{\"data\":[]}", "geen gegevens");
+    expect_fail(b"", "empty input");
+    expect_fail(b"  \n\n", "empty input");
+    expect_fail(b"{\"data\":[]}", "no data");
 }
 
 #[test]
 fn missing_file() {
     let o = run_with(&["/nonexistent/llm-bill-test.jsonl"], None);
     assert_eq!(o.code, 2);
-    assert!(o.stderr.starts_with("fout:"));
+    assert!(o.stderr.starts_with("error:"));
 }
 
 #[test]
@@ -245,11 +245,11 @@ fn negative_and_huge_numbers() {
             "{{\"day\":\"2026-10-01\",\"provider\":\"other\",\"model\":\"m\",\"input_tokens\":{tokens},\"output_tokens\":0}}\n"
         )
     };
-    expect_fail(rec("-1").as_bytes(), "negatief");
-    expect_fail(rec("18446744073709551616").as_bytes(), "bereik");
-    expect_fail(rec("1e30").as_bytes(), "geheel getal");
-    expect_fail(rec("1.5").as_bytes(), "geheel getal");
-    expect_fail(rec("\"7\"").as_bytes(), "geheel getal");
+    expect_fail(rec("-1").as_bytes(), "negative");
+    expect_fail(rec("18446744073709551616").as_bytes(), "range");
+    expect_fail(rec("1e30").as_bytes(), "integer");
+    expect_fail(rec("1.5").as_bytes(), "integer");
+    expect_fail(rec("\"7\"").as_bytes(), "integer");
     // Each value fits in u64 but the sum overflows.
     let two = format!("{}{}", rec("18446744073709551615"), rec("1"));
     expect_fail(two.as_bytes(), "overflow");
@@ -259,7 +259,7 @@ fn negative_and_huge_numbers() {
         let line = format!(
             "{{\"day\":\"2026-10-01\",\"provider\":\"other\",\"model\":\"m\",\"input_tokens\":0,\"output_tokens\":0,\"cost_usd\":\"{cost}\"}}\n"
         );
-        expect_fail(line.as_bytes(), "bedrag");
+        expect_fail(line.as_bytes(), "amount");
     }
 }
 
@@ -270,8 +270,8 @@ fn api_negative_and_huge_numbers() {
             "{{\"data\":[{{\"starting_at\":\"2026-10-01T00:00:00Z\",\"results\":[{{\"model\":\"m\",\"uncached_input_tokens\":{n},\"cache_read_input_tokens\":0,\"cache_creation\":{{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0}},\"output_tokens\":0}}]}}]}}"
         )
     };
-    expect_fail(doc("-3").as_bytes(), "negatief");
-    expect_fail(doc("99999999999999999999999").as_bytes(), "bereik");
+    expect_fail(doc("-3").as_bytes(), "negative");
+    expect_fail(doc("99999999999999999999999").as_bytes(), "range");
     expect_fail(
         b"{\"data\":[{\"starting_at\":\"2026-10-01T00:00:00+02:00\",\"results\":[]}]}",
         "UTC",
@@ -286,7 +286,7 @@ fn unknown_fields_and_values_are_not_guessed() {
             "{{\"day\":\"2026-10-01\",\"provider\":\"other\",\"model\":\"m\",\"input_tokens\":1,\"output_tokens\":1{extra}}}\n"
         )
     };
-    expect_fail(base(",\"thinking_tokens\":5").as_bytes(), "onbekend veld");
+    expect_fail(base(",\"thinking_tokens\":5").as_bytes(), "unknown field");
     expect_fail(
         base(",\"service_tier\":\"gold\"").as_bytes(),
         "service_tier",
@@ -323,7 +323,7 @@ fn leap_day_and_unix_days() {
     let ok = "{\"day\":\"2028-02-29\",\"provider\":\"other\",\"model\":\"m\",\"input_tokens\":1,\"output_tokens\":1}\n";
     assert_eq!(run_with(&["-"], Some(ok.as_bytes())).code, 0);
     let bad = ok.replace("2028", "2026");
-    expect_fail(bad.as_bytes(), "ongeldige dag");
+    expect_fail(bad.as_bytes(), "invalid day");
     // 1790899199 is the last second of 2026-10-01, 1790899200 the first of 10-02.
     for (secs, day) in [(1790899199u64, "2026-10-01"), (1790899200, "2026-10-02")] {
         let doc = format!(
@@ -411,10 +411,10 @@ fn b4_same_file_twice_is_counted_once_with_warning() {
     let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
     assert_eq!(d["rows"][0]["input_tokens"], 1500);
     assert_eq!(d["totals"]["output_tokens"], 500);
-    assert!(d["warnings"][0].as_str().unwrap().contains("identiek"));
-    assert!(o.stderr.contains("identiek"), "{}", o.stderr);
+    assert!(d["warnings"][0].as_str().unwrap().contains("identical"));
+    assert!(o.stderr.contains("identical"), "{}", o.stderr);
     let t = run_with(&[&a, &a], None);
-    assert!(t.stdout.contains("waarschuwing: "), "{}", t.stdout);
+    assert!(t.stdout.contains("warning: "), "{}", t.stdout);
 }
 
 #[test]
@@ -427,7 +427,7 @@ fn b4_duplicate_bucket_result_is_counted_once_with_warning() {
     let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
     assert_eq!(d["rows"][0]["input_tokens"], 10);
     assert_eq!(d["rows"][0]["output_tokens"], 5);
-    assert!(d["warnings"][0].as_str().unwrap().contains("dubbel"));
+    assert!(d["warnings"][0].as_str().unwrap().contains("duplicate"));
     // Same result in a later bucket (other start) is real usage and is summed.
     let later = bucket.replace("2026-10-01", "2026-10-02");
     let doc = format!("{{\"data\":[{bucket},{later}]}}");
@@ -476,7 +476,7 @@ fn b5_stdout_write_error_is_nonzero_without_panic() {
     for args in [&[f.as_str()][..], &["--json", f.as_str()][..]] {
         let o = run_full(args, true, false);
         assert_eq!(o.code, 2, "{args:?}: {}", o.stderr);
-        assert!(o.stderr.starts_with("fout:"), "{}", o.stderr);
+        assert!(o.stderr.starts_with("error:"), "{}", o.stderr);
         assert!(!o.stderr.contains("panicked"), "{}", o.stderr);
     }
 }
@@ -534,7 +534,7 @@ fn b6_openai_amount_unit_is_a_documented_assumption() {
     );
     let d: serde_json::Value = serde_json::from_str(&o.stdout).unwrap();
     let w = d["warnings"][0].as_str().unwrap();
-    assert!(w.contains("aangenomen dollars"), "{w}");
+    assert!(w.contains("assumed dollars"), "{w}");
     for readme in [
         include_str!("../README.md"),
         include_str!("../README.nl.md"),
@@ -574,7 +574,7 @@ fn g1_float_artifact_and_exponent_round_to_12() {
     let o = run_with(&["--json", "-"], Some(doc.as_bytes()));
     assert_eq!(o.code, 0, "stdout={}\nstderr={}", o.stdout, o.stderr);
     assert!(
-        o.stderr.contains("afgerond op 12 decimalen"),
+        o.stderr.contains("rounded to 12 decimal places"),
         "stdout={}\nstderr={}",
         o.stdout,
         o.stderr
@@ -612,7 +612,7 @@ fn g2a_same_float_artifact_warns_once_in_json() {
         .filter(|w| {
             w.as_str()
                 .unwrap_or("")
-                .contains("afgerond op 12 decimalen")
+                .contains("rounded to 12 decimal places")
         })
         .count();
     assert_eq!(n, 1, "{d}");
@@ -649,6 +649,6 @@ fn bad_input_exits_nonzero_without_panic() {
         assert!(o.stdout.is_empty(), "{args:?}: {}", o.stdout);
     };
     check(&["--no-such-option"], None, "unexpected argument");
-    check(&["/nonexistent/llm-bill-test.jsonl"], None, "fout:");
-    check(&["-"], Some(br#"{"day":"#), "ongeldige JSON");
+    check(&["/nonexistent/llm-bill-test.jsonl"], None, "error:");
+    check(&["-"], Some(br#"{"day":"#), "invalid JSON");
 }
